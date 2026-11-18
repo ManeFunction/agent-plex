@@ -114,7 +114,28 @@ def test_atomic_write_keeps_old_file_on_failure(tmp_path):
     with pytest.raises(TypeError):
         atomic_write_json(path, {"bad": object()})
     assert json.loads(path.read_text()) == {"ok": 1}
-    assert not path.with_suffix(".tmp").exists()
+    assert sorted(p.name for p in path.parent.iterdir()) == ["state.json"]  # no temp file left
+
+
+def test_atomic_write_temp_file_is_per_process(tmp_path, monkeypatch):
+    import os
+    from plex_cli import files
+
+    path = tmp_path / "c.json"
+    seen = []
+    real_replace = os.replace
+    monkeypatch.setattr(files.os, "replace", lambda a, b: (seen.append(a), real_replace(a, b)))
+    files.atomic_write_json(path, {})
+    assert seen == [tmp_path / f"c.json.{os.getpid()}.tmp"]
+
+
+def test_store_clear_removes_leftover_temp_files(tmp_path):
+    import os
+
+    store = _store_with_two(tmp_path)
+    (tmp_path / f"x.json.{os.getpid()}.tmp").write_text("{")
+    assert store.clear() == 2
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_state_overrides_config(tmp_path):

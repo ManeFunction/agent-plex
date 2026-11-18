@@ -16,7 +16,7 @@ def atomic_write_json(path: Path, data: Any, mode: int | None = None, dir_mode: 
     folders further up are always created with the umask).
     """
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o777 if dir_mode is None else dir_mode)
-    tmp = path.with_suffix(".tmp")
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")  # per process: two plex instances may write at once
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o666 if mode is None else mode)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
