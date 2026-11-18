@@ -33,6 +33,34 @@ def test_store_ignores_corrupt_files_and_sanitizes_ids(tmp_path):
     assert Store(tmp_path).path("../../etc/passwd").parent == tmp_path
 
 
+def test_store_skips_malformed_conversation_data(tmp_path):
+    (tmp_path / "list.json").write_text("[]")
+    (tmp_path / "turns.json").write_text(json.dumps({"title": 5, "turns": [
+        "junk",
+        {"user": "q", "assistant": "a", "cost": "x", "created_at": [1], "sources": [
+            {"id": 1, "url": "https://u", "bogus": True}, {"id": 2}, {"url": "https://v"}, "junk"]},
+        {"user": "no answer"},
+    ]}))
+    store = Store(tmp_path)
+    assert [(i.id, i.title) for i in store.list()] == [("turns", "q")]
+    with pytest.raises(ValueError):
+        store.load("list")
+    s = store.load("turns")
+    assert [(t.user, t.cost) for t in s.turns] == [("q", None)]
+    assert s.turns[0].sources == {1: Source(1, "https://u")}
+
+
+def test_cli_open_reports_a_corrupt_conversation(tmp_path, monkeypatch, capsys):
+    from plex_cli.cli import main
+
+    (tmp_path / "bad.json").write_text("[]")
+    monkeypatch.setattr("plex_cli.cli.SESSIONS_DIR", tmp_path)
+    monkeypatch.setattr("plex_cli.cli.load_state", lambda: {})
+    monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: {})
+    assert main(["-o", "bad", "hi"]) == 2
+    assert "cannot load 'bad'" in capsys.readouterr().err
+
+
 def test_find_with_a_query_that_is_not_an_id(tmp_path):
     store = Store(tmp_path)
     s = Session()

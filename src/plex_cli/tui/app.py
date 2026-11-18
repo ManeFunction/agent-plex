@@ -407,7 +407,7 @@ class PlexApp(App):
         if event.option.id != self.session.id:
             try:
                 await self.show_session(self.store.load(event.option.id))
-            except (OSError, ValueError, KeyError) as e:
+            except (OSError, ValueError, KeyError, TypeError) as e:
                 self.notify(f"Could not open conversation: {e}", severity="error")
                 return
         self.query_one("#sidebar").display = False

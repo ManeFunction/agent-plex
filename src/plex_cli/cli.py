@@ -186,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         try:
             session = store.load(sid)
-        except (OSError, ValueError, KeyError) as e:
+        except (OSError, ValueError, KeyError, TypeError) as e:
             r.error(f"cannot load {sid!r}: {e}")
             return 2
 

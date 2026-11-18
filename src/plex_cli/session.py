@@ -38,11 +38,19 @@ def make_title(text: str) -> str:
 def _header(data: dict, fallback_id: str, fallback_time: float) -> tuple[str, str, float, float]:
     """(id, title, created_at, updated_at) of a saved conversation, filling in what older
     (v1) files or hand-edited ones leave out."""
-    turns = data.get("turns") or []
-    title = data.get("title") or (make_title(turns[0]["user"]) if turns else "")
+    title = data.get("title")
+    if not (title and isinstance(title, str)):
+        users = (t["user"] for t in _turns(data) if isinstance(t, dict) and isinstance(t.get("user"), str))
+        title = make_title(next(users, ""))
     created = float(data.get("created_at") or data.get("saved_at") or fallback_time)
     updated = float(data.get("updated_at") or data.get("saved_at") or fallback_time)
-    return data.get("id") or fallback_id, title, created, updated
+    sid = data.get("id")
+    return sid if sid and isinstance(sid, str) else fallback_id, title, created, updated
+
+
+def _turns(data: dict) -> list:
+    turns = data.get("turns")
+    return turns if isinstance(turns, list) else []
 
 
 @dataclass
@@ -100,14 +108,45 @@ class Session:
 
     @classmethod
     def from_json(cls, data: dict, fallback_id: str | None = None) -> "Session":
+        """Raises ValueError for a file that isn't a conversation; turns and sources that
+        are malformed (hand-edited, or a partial write) are skipped."""
+        if not isinstance(data, dict):
+            raise ValueError("not a conversation file")
         sid, title, created, updated = _header(data, fallback_id or new_id(), time.time())
         s = cls(id=sid, title=title, total_cost=float(data.get("total_cost") or 0.0),
                 created_at=created, updated_at=updated)
-        for t in data.get("turns", []):
-            srcs = {int(x["id"]): Source(**x) for x in t.get("sources", [])}
-            s.turns.append(Turn(t["user"], t["assistant"], srcs, t.get("cost"),
-                                t.get("model"), float(t.get("created_at") or s.created_at)))
+        for t in _turns(data):
+            if turn := _turn_from_json(t, s.created_at):
+                s.turns.append(turn)
         return s
+
+
+def _turn_from_json(t: object, fallback_time: float) -> Turn | None:
+    if not (isinstance(t, dict) and isinstance(t.get("user"), str) and isinstance(t.get("assistant"), str)):
+        return None
+    srcs = {}
+    for x in t.get("sources") or []:
+        if src := _source_from_json(x):
+            srcs[src.id] = src
+    try:
+        created = float(t.get("created_at") or fallback_time)
+    except (TypeError, ValueError):
+        created = fallback_time
+    cost = t.get("cost")
+    return Turn(t["user"], t["assistant"], srcs,
+                float(cost) if isinstance(cost, (int, float)) else None,
+                t.get("model") if isinstance(t.get("model"), str) else None, created)
+
+
+def _source_from_json(x: object) -> Source | None:
+    if not isinstance(x, dict) or not isinstance(x.get("url"), str):
+        return None
+    try:
+        sid = int(x["id"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    title, date = x.get("title"), x.get("date")
+    return Source(sid, x["url"], title if isinstance(title, str) else "", date if isinstance(date, str) else None)
 
 
 @dataclass
@@ -165,8 +204,10 @@ class Store:
         for p in self.dir.glob("*.json"):
             try:
                 d = json.loads(p.read_text())
+                if not isinstance(d, dict):
+                    continue
                 sid, title, _, updated = _header(d, p.stem, p.stat().st_mtime)
-                out.append(SessionInfo(sid, title or p.stem, updated, len(d.get("turns") or []),
+                out.append(SessionInfo(sid, title or p.stem, updated, len(_turns(d)),
                                        float(d.get("total_cost") or 0)))
             except (OSError, ValueError, KeyError, TypeError):
                 continue
