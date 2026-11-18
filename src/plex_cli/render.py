@@ -12,6 +12,7 @@ from rich.text import Text
 
 from .citations import footer_sources, normalize
 from .client import Done, Source
+from .turn import searching_status
 
 
 def plural(n: int, word: str) -> str:
@@ -49,7 +50,7 @@ class Renderer:
             self._live.start()
 
     def searching(self, queries: list[str]) -> None:
-        self._status = "Searching: " + " · ".join(q for q in queries if q) if queries else "Searching…"
+        self._status = searching_status(queries) + ("" if any(queries) else "…")
         self._refresh()
 
     def sources_found(self, sources: list[Source]) -> None:

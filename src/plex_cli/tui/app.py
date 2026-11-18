@@ -18,15 +18,43 @@ from textual.worker import Worker
 
 from .. import auth
 from ..citations import footer_sources, normalize
-from ..client import AsyncClient, Done, Searching, SourcesFound, TextDelta, TurnFailed, api_error_message
+from .. import turn
+from ..client import AsyncClient, Source, api_error_message
 from ..config import DEFAULT_THEME, EFFORTS, REASONING, SESSIONS_DIR, Settings, save_state
 from ..render import fmt_cost, plural
-from ..session import Session, Store, Turn, ago
+from ..session import Session, Store, ago
 from .screens import (DEFAULT_REASONING, ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
                       ModelPalette, ReasoningScreen, ThemePalette)
 from .effects import BackdropScroll, BackdropVertical, RainField
 from .themes import load_themes
 from .widgets import AssistantMessage, CommandMenu, PromptInput, UserMessage, Welcome
+
+
+class StreamingView:
+    """Shows a streaming answer in an AssistantMessage (a `turn.TurnView`)."""
+
+    def __init__(self, msg: AssistantMessage) -> None:
+        self.msg = msg
+        # Created on the first chunk: stopping a never-run MarkdownStream raises CancelledError.
+        self.stream = None
+
+    async def delta(self, text: str) -> None:
+        if self.stream is None:
+            self.msg.answering()
+            self.stream = Markdown.get_stream(self.msg.markdown)
+            await asyncio.sleep(0)  # let the stream task start
+        await self.stream.write(text)
+
+    def searching(self, queries: list[str]) -> None:
+        self.msg.set_status(turn.searching_status(queries))
+
+    def sources_found(self, sources: list[Source]) -> None:
+        if self.stream is None:
+            self.msg.set_status(f"Reading {len(sources)} sources")
+
+    async def stop(self) -> None:
+        if self.stream is not None:
+            await self.stream.stop()
 
 
 class PlexApp(App):
@@ -306,52 +334,30 @@ class PlexApp(App):
             self._busy = False
             self.refresh_status()
 
-    async def _ask(self, question, session, settings, chat, msg) -> None:
+    async def _ask(self, question: str, session: Session, settings: Settings,
+                   chat: VerticalScroll, msg: AssistantMessage) -> None:
         await chat.mount_all([UserMessage(question), msg])
         chat.scroll_end(animate=False)
         msg.start()
         self.refresh_status()
 
-        # Created on the first chunk: stopping a never-run MarkdownStream raises CancelledError.
-        stream = None
-        done: Done | None = None
-        error: str | None = None
-        auth_failed = False
+        view = StreamingView(msg)
         try:
-            async for ev in self.client.stream_turn(session.input_for(question), settings):
-                if isinstance(ev, TextDelta):
-                    if stream is None:
-                        msg.answering()
-                        stream = Markdown.get_stream(msg.markdown)
-                        await asyncio.sleep(0)  # let the stream task start
-                    await stream.write(ev.text)
-                elif isinstance(ev, Searching):
-                    q = " · ".join(x for x in ev.queries if x)
-                    msg.set_status(f"Searching {q}" if q else "Searching")
-                elif isinstance(ev, SourcesFound) and stream is None:
-                    msg.set_status(f"Reading {len(ev.sources)} sources")
-                elif isinstance(ev, Done):
-                    done = ev
+            done = await turn.arun(self.client.stream_turn(session.input_for(question), settings), view)
         except asyncio.CancelledError:
-            if stream is not None:
-                await stream.stop()
+            await view.stop()
             msg.interrupted()
             raise
-        except TurnFailed as e:
-            error = str(e) or "The request failed."
-        except Exception as e:  # SDK/network errors
-            error = api_error_message(e) or f"{type(e).__name__}: {e}"
-            auth_failed = type(e).__name__ == "AuthenticationError"
-        if stream is not None:
-            await stream.stop()
-
-        if error or done is None:
-            msg.fail(error or "No answer received.")
+        except Exception as e:  # the API failed the turn, or SDK / network errors
+            await view.stop()
+            err = turn.turn_error(e) or turn.TurnError(f"{type(e).__name__}: {e}")
+            msg.fail(err.message)
             self.refresh_status()
-            if auth_failed:
+            if err.auth:
                 self._pending = question
                 self.ask_for_key("That key was rejected (401).")
             return
+        await view.stop()
 
         text = normalize(done.text, done.sources)
         if text != msg.markdown.source:
@@ -359,9 +365,7 @@ class PlexApp(App):
         srcs = footer_sources(text, done.sources)
         meta = " · ".join(x for x in (fmt_cost(done.cost), f"{msg.elapsed:.1f}s", done.model) if x)
         msg.finish(srcs, meta, self._register_links(srcs))
-        session.commit(Turn(question, done.text, done.sources, done.cost, done.model))
-        if not settings.model and self.settings.note_seen(done.effort, done.model):
-            save_state(self.settings)
+        turn.complete(session, settings, question, done)
         try:
             self.store.save(session)
         except OSError as e:

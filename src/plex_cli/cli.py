@@ -7,46 +7,31 @@ import getpass
 import sys
 
 from . import __version__, auth
-from .client import Client, Done, Searching, SourcesFound, TextDelta, TurnFailed, api_error_message
+from . import turn
+from .client import Client
 from .config import (
     EFFORTS, REASONING, SESSIONS_DIR, ConfigError, Settings,
-    load_file_config, load_state, resolve_api_key, save_seen, settings_from,
+    load_file_config, load_state, resolve_api_key, settings_from,
 )
 from .render import Renderer
-from .session import Session, Store, Turn, ago
+from .session import Session, Store, ago
 
 
 def run_turn(client: Client, session: Session, settings: Settings,
              r: Renderer, question: str) -> bool:
     """Ask one question, stream the answer, commit it on success."""
     r.begin()
-    done: Done | None = None
     try:
-        for ev in client.stream_turn(session.input_for(question), settings):
-            if isinstance(ev, TextDelta):
-                r.delta(ev.text)
-            elif isinstance(ev, Searching):
-                r.searching(ev.queries)
-            elif isinstance(ev, SourcesFound):
-                r.sources_found(ev.sources)
-            elif isinstance(ev, Done):
-                done = ev
+        done = turn.run(client.stream_turn(session.input_for(question), settings), r)
     except KeyboardInterrupt:
         r.interrupted()
         return False
-    except TurnFailed as e:
-        r.error(str(e))
-        return False
-    except Exception as e:  # SDK / network errors
-        msg = api_error_message(e)
-        if msg is None:
+    except Exception as e:  # the API failed the turn, or SDK / network errors
+        if (err := turn.turn_error(e)) is None:
             raise
-        r.error(msg)
+        r.error(err.message)
         return False
-    assert done is not None
-    session.commit(Turn(question, done.text, done.sources, done.cost, done.model))
-    if not settings.model and settings.note_seen(done.effort, done.model):
-        save_seen(settings.seen)
+    turn.complete(session, settings, question, done)
     r.finish(done, session.total_cost if len(session.turns) > 1 else None)
     return True
 

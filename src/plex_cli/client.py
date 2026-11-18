@@ -232,6 +232,15 @@ class AsyncClient:
                     await res
 
 
+def is_auth_error(e: BaseException) -> bool:
+    """The API rejected the key (401)."""
+    try:
+        import perplexity
+    except ImportError:  # pragma: no cover
+        return False
+    return isinstance(e, perplexity.AuthenticationError)
+
+
 def api_error_message(e: BaseException) -> str | None:
     """Human message for SDK errors; None if `e` isn't one."""
     try:

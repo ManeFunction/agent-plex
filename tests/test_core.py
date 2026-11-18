@@ -258,3 +258,45 @@ def test_label_model_reasoning():
     assert Settings(model="perplexity/sonar", reasoning="low").label == "perplexity/sonar:low"
     assert Settings(model="perplexity/sonar").label == "perplexity/sonar"
     assert Settings(effort="high", reasoning="low").label == "high"
+
+
+# --- the shared turn module ---------------------------------------------------------
+
+def test_turn_error_classifies_failures():
+    import httpx
+    import perplexity
+
+    from plex_cli.turn import turn_error
+
+    req = httpx.Request("POST", "https://api.perplexity.ai/v1/agent")
+    auth = turn_error(perplexity.AuthenticationError("bad", response=httpx.Response(401, request=req), body=None))
+    assert auth.auth and "401" in auth.message
+    paid = turn_error(perplexity.APIStatusError("pay", response=httpx.Response(402, request=req), body=None))
+    assert not paid.auth and "402" in paid.message
+    assert turn_error(TurnFailed("nope")).message == "nope"
+    assert turn_error(TurnFailed()).message == "The request failed."
+    assert turn_error(RuntimeError("bug")) is None
+
+
+def test_turn_run_routes_events_and_requires_an_answer():
+    from plex_cli.turn import run
+
+    class View:
+        def __init__(self):
+            self.log = []
+
+        def delta(self, text):
+            self.log.append(("delta", text))
+
+        def searching(self, queries):
+            self.log.append(("searching", queries))
+
+        def sources_found(self, sources):
+            self.log.append(("sources", len(sources)))
+
+    view = View()
+    done = run(parse_stream(stream("a", "b")), view)
+    assert done.text == "ab"
+    assert view.log == [("searching", ["python release"]), ("sources", 2), ("delta", "a"), ("delta", "b")]
+    with pytest.raises(TurnFailed, match="No answer"):
+        run(iter([TextDelta("x")]), View())
