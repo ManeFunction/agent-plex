@@ -154,7 +154,10 @@ def _apply(s: Settings, cfg: dict, source: str) -> None:
     if cfg.get("instructions"):
         s.instructions = cfg["instructions"]
     if "max_steps" in cfg:
-        s.max_steps = int(cfg["max_steps"])
+        try:
+            s.max_steps = int(cfg["max_steps"])
+        except (TypeError, ValueError):
+            raise ConfigError(f"Invalid max_steps {cfg['max_steps']!r} in {source}; use a whole number") from None
     if cfg.get("theme"):
         s.theme = str(cfg["theme"])
 

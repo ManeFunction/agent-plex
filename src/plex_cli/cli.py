@@ -64,7 +64,11 @@ def cmd_auth(argv: list[str]) -> int:
         print("Removed stored key." if auth.remove_key() else "No stored key.")
         return 0
     # status
-    found = api_key_source(load_file_config())
+    try:
+        found = api_key_source(load_file_config())
+    except ConfigError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
     if found is None:
         print("No API key. Run `plex auth login`.")
         return 1

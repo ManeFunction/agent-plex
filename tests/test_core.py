@@ -345,3 +345,16 @@ def test_settings_mode_transitions():
         s.use_preset("bogus")
     s.use_model("")
     assert s.is_preset
+
+
+def test_bad_config_values_are_config_errors(tmp_path, monkeypatch, capsys):
+    from plex_cli.cli import main
+    from plex_cli.config import load_file_config
+
+    with pytest.raises(ConfigError, match="max_steps"):
+        settings_from({"max_steps": "abc"})
+    bad = tmp_path / "config.toml"
+    bad.write_text("effort = \n")
+    monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: load_file_config(bad))
+    assert main(["auth", "status"]) == 2
+    assert "Cannot read" in capsys.readouterr().err
