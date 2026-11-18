@@ -626,3 +626,26 @@ async def test_up_and_down_recall_past_messages(tmp_path):
         prompt.text = ""
         await pilot.press("up")
         assert prompt.text == ""  # a new chat has nothing to recall
+
+
+@pytest.mark.asyncio
+async def test_rename_and_delete_report_disk_errors(tmp_path, monkeypatch):
+    app = make_app(tmp_path)
+    async with app.run_test(size=(100, 40)) as pilot:
+        await send(pilot, "first question")
+
+        def broken(*a, **kw):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(app.store, "save", broken)
+        monkeypatch.setattr(app.store, "delete", broken)
+        await send(pilot, "/rename New title")
+        assert app.session.title == "first question"
+        await send(pilot, "/delete")
+        await pilot.press("y")
+        await pilot.pause()
+        assert app.session.turns  # still here
+        assert app.return_code is None
+        messages = [str(n.message) for n in app._notifications]
+        assert any("Could not rename: disk full" in m for m in messages)
+        assert any("Could not delete: disk full" in m for m in messages)

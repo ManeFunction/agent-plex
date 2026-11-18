@@ -550,8 +550,13 @@ class PlexApp(App):
         elif not self.session.turns:
             self.notify("Send a message first.")
         else:
-            self.session.title = arg
-            self.store.save(self.session)
+            old, self.session.title = self.session.title, arg
+            try:
+                self.store.save(self.session)
+            except OSError as e:
+                self.session.title = old
+                self.notify(f"Could not rename: {e}", severity="error")
+                return
             self.refresh_status()
             self.refresh_sidebar()
 
@@ -562,9 +567,13 @@ class PlexApp(App):
 
         async def confirmed(yes: bool | None) -> None:
             if yes:
+                try:
+                    self.store.delete(self.session.id)
+                except OSError as e:
+                    self.notify(f"Could not delete: {e}", severity="error")
+                    return
                 if self.is_busy:  # the answer being written belongs to this conversation
                     self._worker.cancel()
-                self.store.delete(self.session.id)
                 await self.show_session(Session())
                 self.notify("Conversation deleted.")
 
