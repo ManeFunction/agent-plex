@@ -11,7 +11,7 @@ from . import turn
 from .client import Client
 from .config import (
     EFFORTS, REASONING, SESSIONS_DIR, ConfigError, Settings,
-    load_file_config, load_state, resolve_api_key, settings_from,
+    api_key_source, load_file_config, load_state, resolve_api_key, settings_from,
 )
 from .render import Renderer
 from .session import Session, Store, ago
@@ -64,16 +64,16 @@ def cmd_auth(argv: list[str]) -> int:
         print("Removed stored key." if auth.remove_key() else "No stored key.")
         return 0
     # status
-    import os
-    if k := os.environ.get("PERPLEXITY_API_KEY"):
-        print(f"Using PERPLEXITY_API_KEY from environment: {auth.mask(k)}")
-    elif k := auth.get_key():
-        print(f"Using stored key {auth.mask(k)} ({auth.AUTH_FILE})")
-    elif k := (load_file_config().get("api_key")):
-        print(f"Using api_key from config.toml: {auth.mask(k)}")
-    else:
+    found = api_key_source(load_file_config())
+    if found is None:
         print("No API key. Run `plex auth login`.")
         return 1
+    k, source = found
+    print({
+        "env": f"Using PERPLEXITY_API_KEY from environment: {auth.mask(k)}",
+        "auth": f"Using stored key {auth.mask(k)} ({auth.AUTH_FILE})",
+        "config": f"Using api_key from config.toml: {auth.mask(k)}",
+    }[source])
     return 0
 
 

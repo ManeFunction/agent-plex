@@ -145,6 +145,27 @@ def test_api_key_resolution(monkeypatch, tmp_path):
     assert resolve_api_key({"api_key": "file"}) == "env"
 
 
+def test_auth_status_reports_the_key_actually_used(monkeypatch, tmp_path, capsys):
+    from plex_cli import auth
+    from plex_cli.cli import main
+    from plex_cli.config import api_key_source
+
+    monkeypatch.delenv("PERPLEXITY_API_KEY", raising=False)
+    monkeypatch.setattr("plex_cli.auth.AUTH_FILE", tmp_path / "auth.json")
+    monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: {"api_key": "pplx-from-config-1234"})
+    assert api_key_source({"api_key": "c"}) == ("c", "config")
+    assert main(["auth", "status"]) == 0
+    assert "config.toml" in capsys.readouterr().out
+    auth.set_key("pplx-stored-key-5678")
+    assert api_key_source({"api_key": "c"}) == ("pplx-stored-key-5678", "auth")
+    main(["auth", "status"])
+    assert "stored key" in capsys.readouterr().out
+    monkeypatch.setenv("PERPLEXITY_API_KEY", "pplx-env-key-9999")
+    assert api_key_source({"api_key": "c"})[1] == "env"
+    main(["auth", "status"])
+    assert "environment" in capsys.readouterr().out
+
+
 def test_settings_from_file():
     s = settings_from({"effort": "high", "search": False})
     assert s.effort == "high" and not s.search
