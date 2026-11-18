@@ -562,6 +562,8 @@ class PlexApp(App):
 
             async def confirmed(yes: bool | None) -> None:
                 if yes:
+                    if self.is_busy:  # the answer being written belongs to this conversation
+                        self._worker.cancel()
                     self.store.delete(self.session.id)
                     await self.show_session(Session())
                     self.notify("Conversation deleted.")

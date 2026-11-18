@@ -526,3 +526,27 @@ async def test_welcome_line_follows_mode(tmp_path):
         assert "model perplexity/sonar:high" in welcome() and "effort" not in welcome().split("\n")[-1]
         await send(pilot, "/auto-effort low")
         assert "effort low" in welcome()
+
+
+@pytest.mark.asyncio
+async def test_delete_while_answering_cancels_the_answer(tmp_path):
+    app = make_app(tmp_path)
+    async with app.run_test(size=(100, 40)) as pilot:
+        await send(pilot, "first")
+        sid = app.session.id
+        fake = FakeAsync.instances[0]
+        fake.script, fake.delay = [stream("a ", "b ", "c ", "d")], 0.2
+        app.query_one(PromptInput).text = "second"
+        await pilot.press("enter")
+        await pilot.pause(0.3)
+        assert app.is_busy
+        app.query_one(PromptInput).text = "/delete"
+        await pilot.press("enter")
+        await pilot.pause()
+        await pilot.press("y")
+        await pilot.pause()
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert app.return_code is None  # still running, no crash
+        assert not app.store.path(sid).exists()
+        assert app.session.turns == [] and app.query(Welcome)
