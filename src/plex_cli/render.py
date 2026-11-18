@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 
 from rich.console import Console, Group
@@ -13,6 +14,16 @@ from rich.text import Text
 from .citations import footer_sources, normalize
 from .client import Done, Source
 from .turn import searching_status
+
+
+# C0/C1 control characters except tab and newline. Answers and source titles come from the
+# API and from web pages; written raw, an ESC or OSC sequence would reach the terminal.
+_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+
+
+def plain(text: str) -> str:
+    """`text` without terminal control characters, for raw output."""
+    return _CONTROL.sub("", text)
 
 
 def plural(n: int, word: str) -> str:
@@ -61,7 +72,7 @@ class Renderer:
     def delta(self, text: str) -> None:
         self._text += text
         if self.raw:
-            sys.stdout.write(text)
+            sys.stdout.write(plain(text))
             sys.stdout.flush()
         else:
             self._refresh()
@@ -72,12 +83,12 @@ class Renderer:
         srcs = footer_sources(text, done.sources)
         if self.raw:
             if not self._text:  # nothing streamed (e.g. text only in final response)
-                sys.stdout.write(text)
+                sys.stdout.write(plain(text))
             sys.stdout.write("\n")
             if srcs:
                 sys.stdout.write("\nSources:\n")
                 for s in srcs:
-                    sys.stdout.write(f"[{s.id}] {s.title} {s.url}\n".replace("  ", " "))
+                    sys.stdout.write(plain(f"[{s.id}] {s.title} {s.url}").replace("  ", " ") + "\n")
             sys.stdout.flush()
             return
         self.console.print(Markdown(text or "_(empty answer)_"))
@@ -110,7 +121,7 @@ class Renderer:
     def print_sources(self, srcs: list[Source]) -> None:
         if self.raw:
             for s in srcs:
-                print(f"[{s.id}] {s.title} {s.url}")
+                print(plain(f"[{s.id}] {s.title} {s.url}"))
             return
         self.console.print(Text("Sources", style="bold"))
         for s in srcs:

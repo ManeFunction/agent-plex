@@ -358,3 +358,16 @@ def test_bad_config_values_are_config_errors(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: load_file_config(bad))
     assert main(["auth", "status"]) == 2
     assert "Cannot read" in capsys.readouterr().err
+
+
+def test_raw_output_strips_terminal_control_sequences(capsys):
+    from plex_cli.render import plain
+
+    assert plain("a\x1b]8;;http://evil\x07b\tc\nd\x9be\r") == "a]8;;http://evilb\tc\nde"
+    evil = Source(1, "https://x/1", "Title\x1b[2J")
+    r = Renderer(raw=True)
+    r.begin()
+    r.delta("Hi \x1b[31mred [1].")
+    r.finish(Done("Hi \x1b[31mred [1].", {1: evil}, None))
+    out = capsys.readouterr().out
+    assert "\x1b" not in out and "Hi [31mred [1]." in out and "Title[2J" in out
