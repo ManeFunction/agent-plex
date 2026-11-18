@@ -76,7 +76,6 @@ class Settings:
     instructions: str = DEFAULT_INSTRUCTIONS
     max_steps: int = 5
     theme: str = DEFAULT_THEME
-    extra: dict = field(default_factory=dict)
     # Last model seen serving each effort level: {level: {"model", "version", "at"}}.
     seen: dict[str, dict] = field(default_factory=dict)
 

@@ -72,7 +72,7 @@ def build_request(history: list[dict], settings: Settings) -> dict:
         "instructions": settings.instructions,
         "stream": True,
     }
-    extra: dict[str, Any] = dict(settings.extra)
+    extra: dict[str, Any] = {}
     if not settings.is_preset:
         req["model"] = settings.model
         req["max_steps"] = settings.max_steps
