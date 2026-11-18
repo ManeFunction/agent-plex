@@ -179,10 +179,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.effort:
         settings.use_preset(args.effort)
     if args.model_effort:
-        if settings.is_preset:
-            r.error("--model-effort needs a model: add -m <id>")
+        try:
+            settings.set_reasoning(args.model_effort)
+        except ValueError as e:
+            r.error(f"--model-effort: {e} (add -m <id>)")
             return 2
-        settings.set_reasoning(args.model_effort)
     if args.system:
         settings.instructions = args.system
     if args.no_search:

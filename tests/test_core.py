@@ -374,3 +374,12 @@ def test_raw_output_strips_terminal_control_sequences(capsys):
     r.finish(Done("Hi \x1b[31mred [1].", {1: evil}, None))
     out = capsys.readouterr().out
     assert "\x1b" not in out and "Hi [31mred [1]." in out and "Title[2J" in out
+
+
+def test_cli_model_effort_needs_a_model(monkeypatch, capsys):
+    from plex_cli.cli import main
+
+    monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: {})
+    monkeypatch.setattr("plex_cli.cli.load_state", lambda: {})
+    assert main(["--model-effort", "high", "hi"]) == 2
+    assert "needs a selected model (add -m <id>)" in capsys.readouterr().err
