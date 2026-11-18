@@ -173,8 +173,11 @@ class Store:
 
     def find(self, query: str) -> str | None:
         """Exact id, else most recent session whose title contains `query`."""
-        if self.path(query).exists():
-            return query
+        try:
+            if self.path(query).exists():
+                return query
+        except ValueError:  # not usable as an id (e.g. only punctuation); still a title search
+            pass
         q = query.lower()
         return next((i.id for i in self.list() if q in i.title.lower()), None)
 

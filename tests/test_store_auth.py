@@ -33,6 +33,15 @@ def test_store_ignores_corrupt_files_and_sanitizes_ids(tmp_path):
     assert Store(tmp_path).path("../../etc/passwd").parent == tmp_path
 
 
+def test_find_with_a_query_that_is_not_an_id(tmp_path):
+    store = Store(tmp_path)
+    s = Session()
+    s.commit(Turn("what is 2+2?", "4"))
+    store.save(s)
+    assert store.find("?") == s.id  # a title search, not a crash
+    assert store.find("...") is None
+
+
 def test_store_reads_v1_files(tmp_path):
     (tmp_path / "old.json").write_text(json.dumps(
         {"version": 1, "saved_at": 1, "total_cost": 0.1, "turns": [{"user": "q", "assistant": "a", "sources": []}]}))
