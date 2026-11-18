@@ -167,10 +167,12 @@ def settings_from(file_cfg: dict, state: dict | None = None) -> Settings:
     s = Settings()
     _apply(s, file_cfg, "config")
     if state:
-        try:
-            _apply(s, {k: state[k] for k in STATE_KEYS if k in state}, "state")
-        except ConfigError:
-            pass  # ignore a corrupt state file
+        for k in STATE_KEYS:  # one by one, so a corrupt value doesn't drop the valid ones
+            if k in state:
+                try:
+                    _apply(s, {k: state[k]}, "state")
+                except ConfigError:
+                    pass
         s.seen = _valid_seen(state.get("seen"))
     return s
 

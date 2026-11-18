@@ -123,6 +123,9 @@ def test_state_overrides_config(tmp_path):
     s = settings_from({"effort": "low"}, load_state(p))
     assert (s.effort, s.search, s.theme) == ("high", False, "nord")
     assert settings_from({}, {"effort": "bogus"}).effort == "fast"  # corrupt state ignored
+    # A corrupt value drops only itself.
+    s = settings_from({}, {"effort": "bogus", "reasoning": "nope", "search": False, "theme": "dracula"})
+    assert (s.effort, s.reasoning, s.search, s.theme) == ("fast", None, False, "dracula")
 
 
 def test_save_state_writes_only_the_named_fields(tmp_path):
