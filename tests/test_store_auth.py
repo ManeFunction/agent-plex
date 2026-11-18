@@ -65,3 +65,30 @@ def test_state_overrides_config(tmp_path):
     s = settings_from({"effort": "low"}, load_state(p))
     assert (s.effort, s.search, s.theme) == ("high", False, "nord")
     assert settings_from({}, {"effort": "bogus"}).effort == "fast"  # corrupt state ignored
+
+
+def _store_with_two(tmp_path):
+    store = Store(tmp_path)
+    for q in ("one", "two"):
+        s = Session()
+        s.commit(Turn(q, "a"))
+        store.save(s)
+    return store
+
+
+@pytest.mark.parametrize("answer, kept", [("y\n", 0), ("YES\n", 0), ("n\n", 2), ("\n", 2), ("", 2)])
+def test_cli_clear_confirms(tmp_path, monkeypatch, capsys, answer, kept):
+    import io
+    from plex_cli.cli import cmd_clear
+    store = _store_with_two(tmp_path)
+    monkeypatch.setattr("sys.stdin", io.StringIO(answer))
+    rc = cmd_clear(store)
+    assert len(store.list()) == kept
+    assert rc == (0 if kept == 0 else 1)
+    assert "Delete all 2 conversations?" in capsys.readouterr().out
+
+
+def test_cli_clear_nothing(tmp_path, capsys):
+    from plex_cli.cli import cmd_clear
+    assert cmd_clear(Store(tmp_path / "missing")) == 0
+    assert "No conversations" in capsys.readouterr().out

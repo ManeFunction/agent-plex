@@ -147,6 +147,16 @@ class Store:
     def delete(self, sid: str) -> None:
         self.path(sid).unlink(missing_ok=True)
 
+    def clear(self) -> int:
+        """Delete every saved conversation; returns how many files were removed."""
+        if not self.dir.exists():
+            return 0
+        n = 0
+        for p in [*self.dir.glob("*.json"), *self.dir.glob("*.tmp")]:
+            p.unlink(missing_ok=True)
+            n += p.suffix == ".json"
+        return n
+
     def list(self) -> list[SessionInfo]:
         if not self.dir.exists():
             return []

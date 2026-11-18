@@ -34,6 +34,7 @@ plex                      # open the chat
 plex -c                   # reopen the last conversation
 plex -r "python"          # reopen a conversation by id or title text
 plex sessions             # list saved conversations
+plex --clear              # delete all saved conversations (asks y/n first)
 
 plex "what's new in Python 3.15?"     # one-shot: print the answer and exit
 git diff | plex "review this"         # piped input is appended to the question

@@ -101,6 +101,29 @@ def cmd_sessions() -> int:
     return 0
 
 
+def cmd_clear(store: Store | None = None) -> int:
+    store = store or Store(SESSIONS_DIR)
+    n = len(list(store.dir.glob("*.json"))) if store.dir.exists() else 0
+    if not n:
+        print("No conversations yet.")
+        return 0
+    try:
+        answer = input(f"Delete all {n} conversation{'s' if n != 1 else ''}? This cannot be undone. (y/n) ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        answer = ""
+    if answer.strip().lower() not in ("y", "yes"):
+        print("Cancelled.")
+        return 1
+    try:
+        removed = store.clear()
+    except OSError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    print(f"Deleted {removed} conversation{'s' if removed != 1 else ''}.")
+    return 0
+
+
 # --- main -------------------------------------------------------------------------
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -119,6 +142,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--raw", action="store_true", help="plain text output in one-shot mode")
     p.add_argument("-c", "--continue", dest="cont", action="store_true", help="reopen the last conversation")
     p.add_argument("-r", "--resume", metavar="ID|TEXT", help="reopen a conversation by id or title")
+    p.add_argument("--clear", action="store_true", help="delete all saved conversations (asks first)")
     p.add_argument("-V", "--version", action="version", version=f"plex {__version__}")
     return p.parse_args(argv)
 
@@ -131,6 +155,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_sessions()
 
     args = parse_args(argv)
+    if args.clear:
+        return cmd_clear()
     r = Renderer(raw=True if args.raw else None)
     try:
         file_cfg = load_file_config()
