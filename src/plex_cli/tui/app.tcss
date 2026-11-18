@@ -43,6 +43,7 @@ Screen {
 }
 
 #chat {
+    width: 100%;  /* not 1fr: Textual sizes fr widths net of the widest sibling margin (#statusbar 3+4) */
     height: 1fr;
     padding: 1 3 0 3;
     scrollbar-size-vertical: 1;

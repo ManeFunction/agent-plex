@@ -42,8 +42,10 @@ class Welcome(RainBackdrop, Static):
         ]
         body = Content.from_markup(f"[$accent b]{LOGO}[/]\n\n")
         body += Content.from_markup("[dim]Ask anything — answers are researched on the web.[/]\n\n")
-        for key, what in hints:
-            body += Content.from_markup("[$secondary b]$k[/] [dim]$w[/]   ", k=key, w=what)
+        # Join (not suffix) with spaces: a trailing gap would push each centered line left.
+        body += Content("   ").join(
+            Content.from_markup("[$secondary b]$k[/] [dim]$w[/]", k=key, w=what) for key, what in hints
+        )
         kind = "effort" if self.settings.is_preset else "model"
         body += Content.from_markup("\n\n[dim]$k[/] [b]$l[/]", k=kind, l=self.settings.label)
         return body
