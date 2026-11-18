@@ -163,6 +163,7 @@ class Store:
 
     def __init__(self, directory: Path):
         self.dir = directory
+        self.unreadable: list[Path] = []  # files the last `list()` had to skip
 
     def path(self, sid: str) -> Path:
         safe = re.sub(r"[^A-Za-z0-9._-]+", "-", sid).strip("-.")
@@ -198,6 +199,7 @@ class Store:
         return n
 
     def list(self) -> list[SessionInfo]:
+        self.unreadable = []
         if not self.dir.exists():
             return []
         out = []
@@ -205,12 +207,12 @@ class Store:
             try:
                 d = json.loads(p.read_text())
                 if not isinstance(d, dict):
-                    continue
+                    raise ValueError("not a conversation file")
                 sid, title, _, updated = _header(d, p.stem, p.stat().st_mtime)
                 out.append(SessionInfo(sid, title or p.stem, updated, len(_turns(d)),
                                        float(d.get("total_cost") or 0)))
             except (OSError, ValueError, KeyError, TypeError):
-                continue
+                self.unreadable.append(p)
         return sorted(out, key=lambda i: i.updated_at, reverse=True)
 
     def find(self, query: str) -> str | None:

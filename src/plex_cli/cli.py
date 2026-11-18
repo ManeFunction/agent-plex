@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import sys
+from pathlib import Path
 
 from . import __version__, auth
 from . import turn
@@ -113,6 +114,20 @@ def cmd_clear(store: Store | None = None) -> int:
     return 0
 
 
+def _newer_unreadable(store: Store, sid: str | None) -> Path | None:
+    """The newest file `store.list()` skipped, if it is newer than conversation `sid`."""
+    def mtime(p: Path) -> float:
+        try:
+            return p.stat().st_mtime
+        except OSError:
+            return 0.0
+
+    if not store.unreadable:
+        return None
+    newest = max(store.unreadable, key=mtime)
+    return newest if sid is None or mtime(newest) > mtime(store.path(sid)) else None
+
+
 # --- main -------------------------------------------------------------------------
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -179,6 +194,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.resume:
             infos = store.list()
             sid = infos[0].id if infos else None
+            if newer := _newer_unreadable(store, sid):
+                r.warning(f"skipped {newer.name}, which can't be read; "
+                          + ("resuming the newest readable conversation" if sid else "nothing else to resume"))
         else:
             sid = store.find(args.open)
         if not sid:

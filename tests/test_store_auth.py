@@ -200,16 +200,9 @@ def test_conversations_are_private(tmp_path):
 
 
 def test_cli_one_shot_reports_a_failed_save(tmp_path, monkeypatch, capsys):
-    from plex_cli import cli
-
     store = _store_with_two(tmp_path)
-    monkeypatch.setattr(cli, "SESSIONS_DIR", tmp_path)
-    monkeypatch.setattr(cli, "load_state", lambda: {})
-    monkeypatch.setattr(cli, "load_file_config", lambda: {})
-    monkeypatch.setattr(cli, "resolve_api_key", lambda cfg: "pplx-key")
-    monkeypatch.setattr(cli, "Client", lambda key: None)
+    cli = _one_shot_cli(monkeypatch, tmp_path)
     monkeypatch.setattr(cli, "run_turn", lambda *a: True)
-    monkeypatch.setattr("sys.stdin", __import__("io").StringIO(""))
 
     def full_disk(self, s):
         raise OSError(28, "No space left on device")
@@ -218,3 +211,35 @@ def test_cli_one_shot_reports_a_failed_save(tmp_path, monkeypatch, capsys):
     assert cli.main(["-r", "hi"]) == 1
     assert "could not save the conversation" in capsys.readouterr().err
     assert len(store.list()) == 2
+
+
+def _one_shot_cli(monkeypatch, tmp_path):
+    import io
+    from plex_cli import cli
+
+    monkeypatch.setattr(cli, "SESSIONS_DIR", tmp_path)
+    monkeypatch.setattr(cli, "load_state", lambda: {})
+    monkeypatch.setattr(cli, "load_file_config", lambda: {})
+    monkeypatch.setattr(cli, "resolve_api_key", lambda cfg: "pplx-key")
+    monkeypatch.setattr(cli, "Client", lambda key: None)
+    monkeypatch.setattr("sys.stdin", io.StringIO(""))
+    return cli
+
+
+def test_resume_warns_when_the_newest_file_is_unreadable(tmp_path, monkeypatch, capsys):
+    import os
+
+    store = _store_with_two(tmp_path)
+    bad = tmp_path / "zzz.json"
+    bad.write_text("{nope")
+    os.utime(bad, (2**31, 2**31))
+    cli = _one_shot_cli(monkeypatch, tmp_path)
+    resumed = []
+    monkeypatch.setattr(cli, "run_turn", lambda client, session, *a: resumed.append(session.title) or True)
+    assert cli.main(["-r", "hi"]) == 0
+    assert resumed == [store.list()[0].title] and store.unreadable == [bad]
+    assert "skipped zzz.json" in capsys.readouterr().err
+
+    os.utime(bad, (1, 1))  # an old broken file doesn't matter to -r
+    assert cli.main(["-r", "hi"]) == 0
+    assert "skipped" not in capsys.readouterr().err

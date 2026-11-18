@@ -115,6 +115,9 @@ class Renderer:
         self._stop()
         self.err.print(Text(f"error: {msg}", style="bold red"))
 
+    def warning(self, msg: str) -> None:
+        self.err.print(Text(f"warning: {msg}", style="yellow"))
+
     def print_sources(self, srcs: list[Source]) -> None:
         """Sources below a formatted answer (raw output lists them in `finish`)."""
         self.console.print(Text("Sources", style="bold"))
