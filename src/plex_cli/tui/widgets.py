@@ -27,7 +27,7 @@ LOGO = """\
 # name, description, takes_argument
 COMMANDS: list[tuple[str, str, bool]] = [
     ("exit", "Exit plex", False),
-    ("sessions", "Browse chat history", False),
+    ("history", "Browse chat history", False),
     ("auto-effort", "Pick a research effort preset (drops a selected model)", False),
     ("model", "Pick a model from a list, or /model <id> · /model off", False),
     ("effort", "Reasoning effort for the selected model", False),

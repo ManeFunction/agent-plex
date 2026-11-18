@@ -31,9 +31,9 @@ This works like opencode: the key is stored in `~/.local/share/plex/auth.json` w
 
 ```sh
 plex                      # open the chat
-plex -c                   # reopen the last conversation
-plex -r "python"          # reopen a conversation by id or title text
-plex sessions             # list saved conversations
+plex -r                   # reopen the last conversation
+plex -o "python"          # reopen a conversation by id or title text
+plex --history            # list saved conversations
 plex --clear              # delete all saved conversations (asks y/n first)
 
 plex "what's new in Python 3.15?"     # one-shot: print the answer and exit
@@ -63,7 +63,7 @@ Type `/` to see suggestions, then press `tab` to complete.
 | Command | |
 |---|---|
 | `/new`, `/clear` | new conversation |
-| `/sessions` | browse history |
+| `/history` | browse history |
 | `/auto-effort [level]` | effort preset: `fast` · `low` · `medium` · `high` · `xhigh` · `ultra` (drops a selected model) |
 | `/effort [level]` | effort for the selected model: `minimal` · `low` · `medium` · `high` · `xhigh` · `max` · `default` (in preset mode, asks for a model first) |
 | `/model [id]` / `/model off` | pick a model from the list your key can use, or give an id (e.g. `perplexity/sonar`) / go back to presets |

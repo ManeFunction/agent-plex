@@ -92,7 +92,7 @@ def cmd_auth(argv: list[str]) -> int:
     return 0
 
 
-def cmd_sessions() -> int:
+def cmd_history() -> int:
     infos = Store(SESSIONS_DIR).list()
     if not infos:
         print("No conversations yet.")
@@ -130,7 +130,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="plex",
         description="Chat with Perplexity in your terminal. Run without arguments for the chat UI.",
-        epilog="Other commands: `plex auth login|logout|status`, `plex sessions`.",
+        epilog="Other commands: `plex auth login|logout|status`.",
     )
     p.add_argument("question", nargs="*", help="ask once, print the answer and exit (piped stdin is appended)")
     p.add_argument("-e", "--effort", choices=EFFORTS, help="research effort preset (drops a selected model)")
@@ -140,8 +140,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("-s", "--system", help="custom system instructions")
     p.add_argument("--no-search", action="store_true", help="disable web search")
     p.add_argument("--raw", action="store_true", help="plain text output in one-shot mode")
-    p.add_argument("-c", "--continue", dest="cont", action="store_true", help="reopen the last conversation")
-    p.add_argument("-r", "--resume", metavar="ID|TEXT", help="reopen a conversation by id or title")
+    p.add_argument("-r", "--resume", action="store_true", help="reopen the last conversation")
+    p.add_argument("-o", "--open", metavar="ID|TEXT", help="reopen a conversation by id or title")
+    p.add_argument("--history", action="store_true", help="list saved conversations")
     p.add_argument("--clear", action="store_true", help="delete all saved conversations (asks first)")
     p.add_argument("-V", "--version", action="version", version=f"plex {__version__}")
     return p.parse_args(argv)
@@ -151,10 +152,10 @@ def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["auth"]:
         return cmd_auth(argv[1:])
-    if argv == ["sessions"]:
-        return cmd_sessions()
 
     args = parse_args(argv)
+    if args.history:
+        return cmd_history()
     if args.clear:
         return cmd_clear()
     r = Renderer(raw=True if args.raw else None)
@@ -187,10 +188,10 @@ def main(argv: list[str] | None = None) -> int:
 
     store = Store(SESSIONS_DIR)
     session = Session()
-    if args.cont or args.resume:
-        sid = (store.list()[0].id if store.list() else None) if args.cont else store.find(args.resume)
+    if args.resume or args.open:
+        sid = (store.list()[0].id if store.list() else None) if args.resume else store.find(args.open)
         if not sid:
-            r.error("no matching conversation" if args.resume else "no conversations yet")
+            r.error("no matching conversation" if args.open else "no conversations yet")
             return 2
         try:
             session = store.load(sid)
@@ -209,7 +210,7 @@ def main(argv: list[str] | None = None) -> int:
             r.error("No API key. Run `plex auth login` or set PERPLEXITY_API_KEY.")
             return 2
         ok = run_turn(Client(api_key), session, settings, r, question)
-        if ok and (args.cont or args.resume):
+        if ok and (args.resume or args.open):
             store.save(session)
         return 0 if ok else 1
 

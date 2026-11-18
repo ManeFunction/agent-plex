@@ -505,7 +505,7 @@ class PlexApp(App):
             self.exit()
         elif cmd in ("new", "clear"):
             await self.action_new_chat()
-        elif cmd in ("sessions", "history"):
+        elif cmd == "history":
             self.action_toggle_sidebar()
         elif cmd == "effort":
             if arg and arg not in REASONING and arg != DEFAULT_REASONING:
