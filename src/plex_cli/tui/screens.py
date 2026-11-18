@@ -189,6 +189,8 @@ class PickerPalette(CommandPalette):
 
     initial: str | None = None
 
+    # Private Textual hook (checked against Textual 8.2). If it stops being called the list
+    # opens on the first entry; test_model_picker_lists_and_selects catches that.
     def _refresh_command_list(self, command_list, commands, clear_current) -> None:
         super()._refresh_command_list(command_list, commands, clear_current)
         # Open on the current choice rather than jumping to the first one in the list.
@@ -203,13 +205,17 @@ PRESET = "preset"  # the model-list entry that goes back to effort presets
 
 
 class ModelProvider(Provider):
-    """Lists the preset entry, then `models`; every hit carries its id as `text`.
+    """Lists the preset entry, then the palette's models; every hit carries its id as `text`."""
 
-    `then`, if set, runs after a model (not the preset entry) is picked.
-    """
+    models: list[str]
+    then: Callable[[], None] | None
 
-    models: list[str] = []
-    then: Callable[[], None] | None = None
+    async def startup(self) -> None:
+        # Runs while the palette is open and on top (`self.screen` is the screen it was opened
+        # from). Copied here because a pick runs after the palette has closed.
+        palette = self.app.screen
+        assert isinstance(palette, ModelPalette)
+        self.models, self.then = palette.models, palette.then
 
     def _entries(self) -> list[tuple[str, str, str]]:
         """(text, label, help) per entry."""
@@ -235,13 +241,16 @@ class ModelProvider(Provider):
 
 
 class ModelPalette(PickerPalette):
-    """Model search; enter switches to direct-model mode, the preset entry switches back."""
+    """Model search; enter switches to direct-model mode, the preset entry switches back.
+
+    `then`, if set, runs after a model (not the preset entry) is picked.
+    """
 
     def __init__(self, models: list[str], current: str | None,
                  then: Callable[[], None] | None = None) -> None:
-        provider = type("ModelProvider", (ModelProvider,),
-                        {"models": models, "then": staticmethod(then) if then else None})
-        super().__init__(providers=[provider], placeholder="Search for models…")
+        super().__init__(providers=[ModelProvider], placeholder="Search for models…")
+        self.models = models
+        self.then = then
         self.initial = current or PRESET
 
 
@@ -261,6 +270,8 @@ class ThemePalette(PickerPalette):
         if name in self.app.available_themes:
             self.app.theme = name
 
+    # Private Textual action behind esc (checked against Textual 8.2); if it stops being
+    # called, test_theme_picker_previews_and_reverts sees the preview stick.
     def _action_escape(self) -> None:
         if self.original_theme:
             self.app.theme = self.original_theme
