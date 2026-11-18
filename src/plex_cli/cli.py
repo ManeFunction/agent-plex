@@ -12,7 +12,7 @@ from . import turn
 from .client import Client
 from .config import (
     EFFORTS, REASONING, SESSIONS_DIR, ConfigError, Settings,
-    api_key_source, load_file_config, load_state, resolve_api_key, settings_from,
+    load_file_config, load_state, settings_from,
 )
 from .render import Renderer
 from .session import Session, Store, ago
@@ -66,7 +66,7 @@ def cmd_auth(argv: list[str]) -> int:
         return 0
     # status
     try:
-        found = api_key_source(load_file_config())
+        found = auth.api_key_source(load_file_config())
     except ConfigError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as e:
         r.error(str(e))
         return 2
-    api_key = resolve_api_key(file_cfg)
+    api_key = auth.resolve_api_key(file_cfg)
 
     if args.effort and args.model:
         r.error("-e picks a preset and -m a model; use --model-effort to set the model's effort")

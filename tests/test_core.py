@@ -9,7 +9,8 @@ from plex_cli.client import (
     Client, Done, Searching, Source, SourcesFound, TextDelta, TurnFailed,
     build_request, parse_stream,
 )
-from plex_cli.config import ConfigError, Settings, resolve_api_key, settings_from
+from plex_cli.auth import resolve_api_key
+from plex_cli.config import ConfigError, Settings, settings_from
 from plex_cli.render import Renderer
 
 
@@ -147,7 +148,7 @@ def test_api_key_resolution(monkeypatch, tmp_path):
 def test_auth_status_reports_the_key_actually_used(monkeypatch, tmp_path, capsys):
     from plex_cli import auth
     from plex_cli.cli import main
-    from plex_cli.config import api_key_source
+    from plex_cli.auth import api_key_source
 
     monkeypatch.delenv("PERPLEXITY_API_KEY", raising=False)
     monkeypatch.setattr("plex_cli.auth.AUTH_FILE", tmp_path / "auth.json")

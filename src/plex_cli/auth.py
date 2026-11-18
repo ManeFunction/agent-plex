@@ -1,4 +1,4 @@
-"""API-key storage, opencode-style: a 0600 JSON file in the data dir.
+"""API keys: which one plex uses, and storing one opencode-style in a 0600 JSON file.
 
 ~/.local/share/plex/auth.json
     {"perplexity": {"type": "api", "key": "pplx-..."}}
@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from .config import DATA_DIR
@@ -61,3 +62,19 @@ def remove_key(path: Path | None = None) -> bool:
 
 def mask(key: str) -> str:
     return key[:5] + "…" + key[-4:] if len(key) > 12 else "…" * 3
+
+
+def api_key_source(file_cfg: dict) -> tuple[str, str] | None:
+    """(key, source) for the key plex will use, or None. Sources, in order of precedence:
+    "env" (PERPLEXITY_API_KEY), "auth" (auth.json, `plex auth login`), "config" (config.toml)."""
+    for source, key in (("env", lambda: os.environ.get("PERPLEXITY_API_KEY")),
+                        ("auth", get_key),
+                        ("config", lambda: file_cfg.get("api_key"))):
+        if k := key():
+            return k, source
+    return None
+
+
+def resolve_api_key(file_cfg: dict) -> str | None:
+    found = api_key_source(file_cfg)
+    return found[0] if found else None

@@ -1,4 +1,4 @@
-"""Settings, persisted UI state and API-key resolution."""
+"""Settings and persisted UI state."""
 
 from __future__ import annotations
 
@@ -216,21 +216,3 @@ def save_seen(seen: dict[str, dict], path: Path | None = None) -> None:
     """Update only the seen-models part of the state (one-shot mode keeps the rest as is)."""
     path = path or STATE_FILE
     _write_state({**load_state(path), "seen": seen}, path)
-
-
-def api_key_source(file_cfg: dict) -> tuple[str, str] | None:
-    """(key, source) for the key plex will use, or None. Sources, in order of precedence:
-    "env" (PERPLEXITY_API_KEY), "auth" (auth.json, `plex auth login`), "config" (config.toml)."""
-    from .auth import get_key
-
-    for source, key in (("env", lambda: os.environ.get("PERPLEXITY_API_KEY")),
-                        ("auth", get_key),
-                        ("config", lambda: file_cfg.get("api_key"))):
-        if k := key():
-            return k, source
-    return None
-
-
-def resolve_api_key(file_cfg: dict) -> str | None:
-    found = api_key_source(file_cfg)
-    return found[0] if found else None

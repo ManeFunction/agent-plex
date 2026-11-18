@@ -220,7 +220,7 @@ def _one_shot_cli(monkeypatch, tmp_path):
     monkeypatch.setattr(cli, "SESSIONS_DIR", tmp_path)
     monkeypatch.setattr(cli, "load_state", lambda: {})
     monkeypatch.setattr(cli, "load_file_config", lambda: {})
-    monkeypatch.setattr(cli, "resolve_api_key", lambda cfg: "pplx-key")
+    monkeypatch.setattr(auth, "resolve_api_key", lambda cfg: "pplx-key")
     monkeypatch.setattr(cli, "Client", lambda key: None)
     monkeypatch.setattr("sys.stdin", io.StringIO(""))
     return cli
