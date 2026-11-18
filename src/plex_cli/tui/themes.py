@@ -18,6 +18,7 @@ from .effects import EFFECTS
 
 BUNDLED_THEMES_DIR = Path(__file__).parent.parent / "themes"
 USER_THEMES_DIR = CONFIG_FILE.parent / "themes"
+USER_THEMES_PLACEHOLDER = "PUT_YOUR_THEMES_HERE"
 
 
 
@@ -113,10 +114,27 @@ def parse_theme(name: str, data: dict) -> PlexTheme:
     return theme
 
 
+def ensure_user_themes_dir(folder: Path) -> None:
+    """Create the user's theme folder with a blank placeholder file that shows
+    where themes go. The placeholder is only added when the folder is new, so
+    deleting it sticks. A read-only home is not an error: plex just runs with
+    the bundled themes."""
+    if folder.is_dir():
+        return
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / USER_THEMES_PLACEHOLDER).touch()
+    except OSError:
+        pass
+
+
 def load_themes(user_dir: Path | None = None) -> tuple[list[PlexTheme], list[str]]:
     """Return (themes, problems). Terminal themes first, then the rest, each A–Z;
-    themes with an animated effect go last."""
-    user_dir = USER_THEMES_DIR if user_dir is None else user_dir
+    themes with an animated effect go last. With no `user_dir`, the user's theme
+    folder is created first if it doesn't exist yet."""
+    if user_dir is None:
+        user_dir = USER_THEMES_DIR
+        ensure_user_themes_dir(user_dir)
     found: dict[str, PlexTheme] = {}
     problems: list[str] = []
     for folder in (BUNDLED_THEMES_DIR, user_dir):

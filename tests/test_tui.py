@@ -377,6 +377,23 @@ async def test_matrix_theme_runs_rain_only_while_selected(tmp_path):
                        for ch in "ｱｳｴｵｶｷ")
 
 
+def test_user_themes_dir_is_created_with_placeholder(tmp_path, monkeypatch):
+    from plex_cli.tui import themes as mod
+
+    folder = tmp_path / "cfg" / "plex" / "themes"
+    monkeypatch.setattr(mod, "USER_THEMES_DIR", folder)
+    themes, problems = mod.load_themes()
+    placeholder = folder / mod.USER_THEMES_PLACEHOLDER
+    assert placeholder.is_file() and placeholder.read_bytes() == b""
+    assert not problems and "terminal" in {t.name for t in themes}
+
+    (folder / "mine.toml").write_text('terminal = true\naccent = "#00ff88"\n')
+    placeholder.unlink()
+    themes, problems = mod.load_themes()
+    assert "mine" in {t.name for t in themes} and "dracula" in {t.name for t in themes}
+    assert not placeholder.exists()  # not recreated once the folder exists
+
+
 def test_unknown_effect_is_reported(tmp_path):
     from plex_cli.tui.themes import load_themes
 

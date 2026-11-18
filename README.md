@@ -138,7 +138,7 @@ effort = "fast"
 
 `terminal` (the default), `terminal-coral`, `terminal-green` and `terminal-violet` keep your terminal's own background, text and palette and add a single accent color. `terminal` takes its accent from the terminal palette too, so it fits any color scheme, light or dark. `matrix` is `terminal-green` with dim digital rain falling behind the chat. The rain never runs through text and pauses while the terminal window is in the background. The others are `tokyo-night`, `catppuccin-mocha`, `dracula` and `gruvbox`.
 
-Each theme is one TOML file, named after the theme. The bundled ones live in [`src/plex_cli/themes/`](https://github.com/ManeFunction/per-plex/tree/main/src/plex_cli/themes). To add your own, put a file in `~/.config/plex/themes/`; it shows up in `/theme` the next time plex starts. A file with the same name as a bundled theme replaces it. Files with mistakes are skipped, and plex tells you why at startup.
+Each theme is one TOML file, named after the theme. The bundled ones live in [`src/plex_cli/themes/`](https://github.com/ManeFunction/per-plex/tree/main/src/plex_cli/themes). To add your own, put a file in `~/.config/plex/themes/` (`$XDG_CONFIG_HOME/plex/themes/` if that's set, on Linux and macOS alike). plex creates this folder on first start, with an empty `PUT_YOUR_THEMES_HERE` file in it. Your themes are loaded alongside the bundled ones and show up in `/theme` the next time plex starts. A file with the same name as a bundled theme replaces it. Files with mistakes are skipped, and plex tells you why at startup.
 
 A terminal-style theme needs just an accent:
 
