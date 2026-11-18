@@ -2,7 +2,7 @@
 
 A fast, good-looking [Perplexity](https://www.perplexity.ai/) chat for your terminal: researched answers with sources, streamed live, with chat history.
 
-It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Perplexity ended support for the older Sonar Chat Completions API on 2026-09-27. The package is called `per-plex`; the command it installs is `plex`.
+It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Perplexity subscription plan is **not** required. The package is called `per-plex`; the command it installs is `plex`.
 
 > The API is billed per use with an API key. A Perplexity Pro subscription doesn't cover it. A typical `fast` answer costs about $0.002, and plex shows the cost under every answer.
 
