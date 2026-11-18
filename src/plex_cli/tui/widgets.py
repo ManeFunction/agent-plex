@@ -172,7 +172,7 @@ class PromptInput(TextArea):
         super().__init__(soft_wrap=True, show_line_numbers=False, compact=True,
                          highlight_cursor_line=False, **kwargs)
         self.menu: CommandMenu | None = None
-        self.past_messages: Callable[[], list[str]] = list  # oldest first, for ↑/↓ recall
+        self.past_messages: Callable[[], list[str]] = lambda: []  # oldest first, for ↑/↓ recall
         self._recall_index: int | None = None
         self._recalling = False  # the text is a recalled message, so ↑/↓ keep browsing
 
@@ -230,10 +230,10 @@ class PromptInput(TextArea):
             event.prevent_default(); event.stop()
             self.insert("\n")
             return
-        if key in ("up", "down") and (not self.text or self._recalling):
-            if key == "up" or self.text:
-                event.prevent_default(); event.stop()
-                self._recall(-1 if key == "up" else 1)
-                return
+        # ↑ on an empty prompt starts browsing past messages; while browsing, ↑/↓ move through them.
+        if (key == "up" and not self.text) or (key in ("up", "down") and self._recalling):
+            event.prevent_default(); event.stop()
+            self._recall(-1 if key == "up" else 1)
+            return
         self._recalling = False
         await super()._on_key(event)
