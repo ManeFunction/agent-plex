@@ -65,7 +65,7 @@ class Welcome(RainBackdrop, Static):
         body += Content.from_markup("[dim]Ask anything — answers are researched on the web.[/]\n\n")
         for key, what in hints:
             body += Content.from_markup("[$secondary b]$k[/] [dim]$w[/]   ", k=key, w=what)
-        kind = "model" if self.settings.model else "effort"
+        kind = "effort" if self.settings.is_preset else "model"
         body += Content.from_markup("\n\n[dim]$k[/] [b]$l[/]", k=kind, l=self.settings.label)
         return body
 

@@ -74,7 +74,7 @@ def build_request(history: list[dict], settings: Settings) -> dict:
         "stream": True,
     }
     extra: dict[str, Any] = dict(settings.extra)
-    if settings.model:
+    if not settings.is_preset:
         req["model"] = settings.model
         req["max_steps"] = settings.max_steps
         if settings.reasoning:

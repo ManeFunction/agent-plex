@@ -186,12 +186,12 @@ class PlexApp(App):
     def refresh_status(self) -> None:
         s = self.settings
         # Distinct glyphs: ◆ effort preset, ● manually selected model (as model:reasoning).
-        if s.model:
+        if s.is_preset:
+            mode = Content.from_markup("[$accent b]◆[/] [b]$e[/]", e=s.effort)
+        else:
             mode = Content.from_markup("[$accent b]●[/] [b]$m[/]", m=s.model)
             if s.reasoning:
                 mode += Content.from_markup("[dim]:[/][b]$r[/]", r=s.reasoning)
-        else:
-            mode = Content.from_markup("[$accent b]◆[/] [b]$e[/]", e=s.effort)
         mode += Content.from_markup("  [dim]search[/] $v", v="on" if s.search else "off")
         title = self.session.title or "New chat"
         mode += Content.from_markup("  [dim]│[/]  $t", t=title)
@@ -441,7 +441,7 @@ class PlexApp(App):
 
         In preset mode there is no model to set it for, so a model is picked first.
         """
-        if not self.settings.model:
+        if self.settings.is_preset:
             self.notify("Pick a model first; model effort applies to a specific model.")
             self.action_pick_model(then=lambda: self.action_pick_model_effort(level))
             return
@@ -464,13 +464,13 @@ class PlexApp(App):
         self.push_screen(EffortScreen(self.settings.effort, self.settings.seen), chosen)
 
     def set_effort(self, effort: str) -> None:
-        self.settings.effort, self.settings.model = effort, None
+        self.settings.use_preset(effort)
         save_state(self.settings)
         self.refresh_status()
         self.notify(f"Effort: {effort}")
 
     def set_reasoning(self, level: str | None) -> None:
-        self.settings.reasoning = level
+        self.settings.set_reasoning(level)
         save_state(self.settings)
         self.refresh_status()
         self.notify(f"Reasoning: {level or 'model default'}")
@@ -491,9 +491,7 @@ class PlexApp(App):
         self.push_screen(ModelPalette(self._models, self.settings.model, then))
 
     def set_model(self, model: str | None) -> None:
-        if model != self.settings.model:
-            self.settings.reasoning = None  # not every model supports every level
-        self.settings.model = model
+        self.settings.use_model(model)
         save_state(self.settings)
         self.refresh_status()
         self.notify(f"Model: {model or 'preset ' + self.settings.effort}")

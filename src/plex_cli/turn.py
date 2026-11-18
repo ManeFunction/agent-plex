@@ -90,5 +90,5 @@ def turn_error(e: BaseException) -> TurnError | None:
 def complete(session: Session, settings: Settings, question: str, done: Done) -> None:
     """Commit an answered turn and remember which model served the effort preset."""
     session.commit(Turn(question, done.text, done.sources, done.cost, done.model))
-    if not settings.model and settings.note_seen(done.effort, done.model):
+    if settings.is_preset and settings.note_seen(done.effort, done.model):
         save_seen(settings.seen)

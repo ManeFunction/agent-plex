@@ -300,3 +300,26 @@ def test_turn_run_routes_events_and_requires_an_answer():
     assert view.log == [("searching", ["python release"]), ("sources", 2), ("delta", "a"), ("delta", "b")]
     with pytest.raises(TurnFailed, match="No answer"):
         run(iter([TextDelta("x")]), View())
+
+
+# --- preset vs model mode -------------------------------------------------------------
+
+def test_settings_mode_transitions():
+    s = Settings()
+    assert s.is_preset
+    with pytest.raises(ValueError):
+        s.set_reasoning("high")  # needs a model
+    s.use_model("perplexity/sonar")
+    s.set_reasoning("high")
+    assert not s.is_preset and s.reasoning == "high"
+    s.use_model("perplexity/sonar")  # same model keeps its level
+    assert s.reasoning == "high"
+    s.use_model("xai/grok-4.7")  # a new model starts from its default
+    assert s.reasoning is None
+    s.set_reasoning("max")
+    s.use_preset("ultra")  # a preset drops the model
+    assert s.is_preset and (s.effort, s.model) == ("ultra", None)
+    with pytest.raises(ValueError):
+        s.use_preset("bogus")
+    s.use_model("")
+    assert s.is_preset

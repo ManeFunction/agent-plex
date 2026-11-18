@@ -71,6 +71,36 @@ class Settings:
     # Last model seen serving each effort level: {level: {"model", "version", "at"}}.
     seen: dict[str, dict] = field(default_factory=dict)
 
+    # --- mode transitions: the rules for preset mode vs direct-model mode live here ---
+
+    @property
+    def is_preset(self) -> bool:
+        """Perplexity picks the model for `effort`; otherwise `model` is used directly."""
+        return not self.model
+
+    def use_preset(self, effort: str) -> None:
+        """Switch to an effort preset; drops a selected model."""
+        if effort not in EFFORTS:
+            raise ValueError(f"unknown effort {effort!r}")
+        self.effort, self.model = effort, None
+
+    def use_model(self, model: str | None) -> None:
+        """Select a model directly (None goes back to presets). A new model starts from its
+        default reasoning level, since not every model supports every level."""
+        model = model or None
+        if model != self.model:
+            self.reasoning = None
+        self.model = model
+
+    def set_reasoning(self, level: str | None) -> None:
+        """Reasoning effort for the selected model; None leaves it to the model."""
+        if level is not None:
+            if level not in REASONING:
+                raise ValueError(f"unknown reasoning level {level!r}")
+            if self.is_preset:
+                raise ValueError("reasoning effort needs a selected model")
+        self.reasoning = level
+
     def note_seen(self, effort: str | None, model: str | None, now: float | None = None) -> bool:
         """Record which model served an effort level. `effort` is as the API reports it,
         e.g. "fast@2026-11-11.0". Returns whether anything was recorded."""
@@ -82,10 +112,10 @@ class Settings:
 
     @property
     def label(self) -> str:
-        if self.model:
-            mode = f"{self.model}:{self.reasoning}" if self.reasoning else self.model
-        else:
+        if self.is_preset:
             mode = self.effort
+        else:
+            mode = f"{self.model}:{self.reasoning}" if self.reasoning else self.model
         return mode if self.search else f"{mode} · no search"
 
 

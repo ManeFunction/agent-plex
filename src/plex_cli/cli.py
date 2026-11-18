@@ -152,20 +152,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     api_key = resolve_api_key(file_cfg)
 
+    if args.effort and args.model:
+        r.error("-e picks a preset and -m a model; use --model-effort to set the model's effort")
+        return 2
     if args.model:
-        if args.model != settings.model:
-            settings.reasoning = None  # a saved level belongs to the saved model
-        settings.model = args.model
+        settings.use_model(args.model)
     if args.effort:
-        if args.model:
-            r.error("-e picks a preset and -m a model; use --model-effort to set the model's effort")
-            return 2
-        settings.effort, settings.model = args.effort, None
+        settings.use_preset(args.effort)
     if args.model_effort:
-        if not settings.model:
+        if settings.is_preset:
             r.error("--model-effort needs a model: add -m <id>")
             return 2
-        settings.reasoning = args.model_effort
+        settings.set_reasoning(args.model_effort)
     if args.system:
         settings.instructions = args.system
     if args.no_search:
