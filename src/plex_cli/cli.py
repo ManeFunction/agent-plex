@@ -93,7 +93,7 @@ def cmd_history() -> int:
 
 def cmd_clear(store: Store | None = None) -> int:
     store = store or Store(SESSIONS_DIR)
-    n = len(list(store.dir.glob("*.json"))) if store.dir.exists() else 0
+    n = store.count()
     if not n:
         print("No conversations yet.")
         return 0

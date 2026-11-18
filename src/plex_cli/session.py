@@ -188,6 +188,10 @@ class Store:
     def delete(self, sid: str) -> None:
         self.path(sid).unlink(missing_ok=True)
 
+    def count(self) -> int:
+        """How many conversation files there are (readable or not, like `clear` deletes)."""
+        return sum(1 for _ in self.dir.glob("*.json")) if self.dir.exists() else 0
+
     def clear(self) -> int:
         """Delete every saved conversation; returns how many files were removed."""
         if not self.dir.exists():
