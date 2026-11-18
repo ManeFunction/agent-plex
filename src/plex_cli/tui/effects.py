@@ -16,7 +16,8 @@ from textual.containers import Vertical, VerticalScroll
 from textual.geometry import Region
 from textual.strip import Strip
 
-EFFECTS = {"rain"}
+RAIN = "rain"
+EFFECTS = {RAIN}
 
 # Half-width katakana (one cell wide, like the film's code) plus digits and a few symbols.
 GLYPHS = "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ0123456789:.=*+-<>¦"

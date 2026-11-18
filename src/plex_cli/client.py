@@ -48,6 +48,8 @@ class TurnFailed(Exception):
 
 
 def _get(obj: Any, name: str, default: Any = None) -> Any:
+    """`obj.name` or `obj[name]`. Stream events arrive as SDK models, but fields the SDK doesn't
+    type yet (`effort`, the `response.reasoning.*` events) can come through as plain dicts."""
     if isinstance(obj, dict):
         return obj.get(name, default)
     return getattr(obj, name, default)
@@ -79,7 +81,8 @@ def build_request(history: list[dict], settings: Settings) -> dict:
         if settings.search:
             req["tools"] = [{"type": "web_search"}]
     else:
-        # The current API takes the preset as `effort`; SDK 0.47 doesn't type it yet.
+        # The API takes the preset as `effort`. Sent through extra_body, which works whether or
+        # not the installed SDK version has `effort` as a typed parameter.
         extra["effort"] = settings.effort
         if not settings.search:
             # Preset tools can't be removed; this stops the model from calling them.

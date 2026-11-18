@@ -28,7 +28,7 @@ from ..session import Session, Store, ago
 from .screens import (DEFAULT_REASONING, ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
                       ModelPalette, ReasoningScreen, ThemePalette)
 from .commands import COMMANDS, lookup
-from .effects import BackdropScroll, BackdropVertical, RainField
+from .effects import RAIN, BackdropScroll, BackdropVertical, RainField
 from .themes import load_themes
 from .widgets import AssistantMessage, CommandMenu, PromptInput, UserMessage, Welcome
 
@@ -137,7 +137,7 @@ class PlexApp(App):
 
     def apply_effect(self) -> None:
         """Start or stop the theme's animated background."""
-        active = getattr(self.current_theme, "effect", None) == "rain"
+        active = getattr(self.current_theme, "effect", None) == RAIN
         if active == self.rain.active:
             return
         self.rain.active = active

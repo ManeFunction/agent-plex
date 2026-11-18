@@ -176,7 +176,11 @@ def main(argv: list[str] | None = None) -> int:
     store = Store(SESSIONS_DIR)
     session = Session()
     if args.resume or args.open:
-        sid = (store.list()[0].id if store.list() else None) if args.resume else store.find(args.open)
+        if args.resume:
+            infos = store.list()
+            sid = infos[0].id if infos else None
+        else:
+            sid = store.find(args.open)
         if not sid:
             r.error("no matching conversation" if args.open else "no conversations yet")
             return 2
