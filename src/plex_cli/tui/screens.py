@@ -89,16 +89,27 @@ class EffortScreen(Dialog):
         self.dismiss(event.option.id)
 
 
-DEFAULT_REASONING = "default"  # option id for "let the model decide"
+DEFAULT_REASONING = "default"  # what `/effort` and the picker call "let the model decide"
+
+
+def parse_reasoning(word: str) -> str | None:
+    """A model reasoning level as the user names it; "default" is None (the model decides)."""
+    if word == DEFAULT_REASONING:
+        return None
+    if word not in REASONING:
+        raise ValueError(f"Unknown model effort. Choose: {', '.join(REASONING)}, {DEFAULT_REASONING}")
+    return word
 
 
 class ReasoningScreen(Dialog):
-    """Reasoning effort for a manually selected model."""
+    """Reasoning effort for a manually selected model. Choosing one calls `on_pick` with
+    the level (None for the model's default); esc closes without calling it."""
 
-    def __init__(self, model: str, current: str | None) -> None:
+    def __init__(self, model: str, current: str | None, on_pick: Callable[[str | None], None]) -> None:
         super().__init__()
         self.model = model
         self.current = current or DEFAULT_REASONING
+        self.on_pick = on_pick
 
     def compose(self) -> ComposeResult:
         with Vertical(classes="dialog"):
@@ -118,7 +129,8 @@ class ReasoningScreen(Dialog):
         opts.focus()
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        self.dismiss(event.option.id)
+        self.dismiss()
+        self.on_pick(parse_reasoning(event.option.id))
 
 
 class ConfirmScreen(Dialog):

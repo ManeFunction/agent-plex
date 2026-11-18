@@ -22,11 +22,11 @@ from .. import auth
 from ..citations import footer_sources, normalize
 from .. import turn
 from ..client import AsyncClient, Source, api_error_message
-from ..config import DEFAULT_THEME, EFFORTS, MODE_KEYS, REASONING, SESSIONS_DIR, Settings, save_state
+from ..config import DEFAULT_THEME, EFFORTS, MODE_KEYS, SESSIONS_DIR, Settings, save_state
 from ..render import fmt_cost, plural
 from ..session import Session, Store, ago
-from .screens import (DEFAULT_REASONING, ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
-                      ModelPalette, ReasoningScreen, ThemePalette)
+from .screens import (ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
+                      ModelPalette, ReasoningScreen, ThemePalette, parse_reasoning)
 from .commands import COMMANDS, lookup
 from .effects import RAIN, BackdropScroll, BackdropVertical, RainField
 from .themes import load_themes
@@ -413,24 +413,19 @@ class PlexApp(App):
         self.query_one("#sidebar").display = False
         self.query_one(PromptInput).focus()
 
-    def action_pick_model_effort(self, level: str | None = None) -> None:
-        """Reasoning effort for the manually selected model; `level` skips the picker.
+    def action_pick_model_effort(self) -> None:
+        """Reasoning effort picker for the manually selected model."""
+        if not self._pick_model_first(self.action_pick_model_effort):
+            self.push_screen(ReasoningScreen(self.settings.model, self.settings.reasoning, self.set_reasoning))
 
-        In preset mode there is no model to set it for, so a model is picked first.
-        """
-        if self.settings.is_preset:
-            self.notify("Pick a model first; model effort applies to a specific model.")
-            self.action_pick_model(then=lambda: self.action_pick_model_effort(level))
-            return
-        if level:
-            self.set_reasoning(None if level == DEFAULT_REASONING else level)
-            return
-
-        def picked(level: str | None) -> None:
-            if level:
-                self.set_reasoning(None if level == DEFAULT_REASONING else level)
-
-        self.push_screen(ReasoningScreen(self.settings.model, self.settings.reasoning), picked)
+    def _pick_model_first(self, then: Callable[[], None]) -> bool:
+        """In preset mode there is no model to set a reasoning effort for: open the model
+        list, run `then` once a model is picked, and return True."""
+        if not self.settings.is_preset:
+            return False
+        self.notify("Pick a model first; model effort applies to a specific model.")
+        self.action_pick_model(then=then)
+        return True
 
     def action_pick_effort(self) -> None:
         """Effort presets; choosing one drops a manually selected model."""
@@ -498,10 +493,16 @@ class PlexApp(App):
         self.action_toggle_sidebar()
 
     def cmd_effort(self, arg: str) -> None:
-        if arg and arg not in REASONING and arg != DEFAULT_REASONING:
-            self.notify(f"Unknown model effort. Choose: {', '.join(REASONING)}, default", severity="error")
-        else:
-            self.action_pick_model_effort(arg or None)
+        if not arg:
+            self.action_pick_model_effort()
+            return
+        try:
+            level = parse_reasoning(arg)
+        except ValueError as e:
+            self.notify(str(e), severity="error")
+            return
+        if not self._pick_model_first(lambda: self.set_reasoning(level)):
+            self.set_reasoning(level)
 
     def cmd_auto_effort(self, arg: str) -> None:
         if arg in EFFORTS:

@@ -486,6 +486,12 @@ async def test_reasoning_effort_for_selected_model(tmp_path):
         await send(pilot, "/effort default")
         assert app.settings.reasoning is None
 
+        await send(pilot, "/effort max")  # picking "the model's own default" in the dialog
+        await send(pilot, "/effort")
+        await pilot.press("home", "enter")
+        await pilot.pause()
+        assert app.settings.reasoning is None and not isinstance(app.screen, ReasoningScreen)
+
         await send(pilot, "/effort max")
         await send(pilot, "/model xai/grok-4.7")  # switching model drops the level
         assert app.settings.reasoning is None
