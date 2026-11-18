@@ -61,10 +61,6 @@ class Session:
             self.title = make_title(turn.user)
         self.updated_at = time.time()
 
-    def add_cost(self, cost: float | None) -> None:
-        if cost:
-            self.total_cost += cost
-
     @property
     def last(self) -> Turn | None:
         return self.turns[-1] if self.turns else None

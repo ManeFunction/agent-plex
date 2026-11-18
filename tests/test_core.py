@@ -74,7 +74,6 @@ def test_parse_stream_happy_path():
     assert isinstance(done, Done)
     assert done.text == "Hello [1]."
     assert done.cost == pytest.approx(0.0021)
-    assert done.response_id == "resp_1"
     assert set(done.sources) == {1, 2}
 
 

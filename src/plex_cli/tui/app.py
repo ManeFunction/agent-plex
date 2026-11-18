@@ -82,7 +82,7 @@ class PlexApp(App):
         self._client_factory = client_factory
         self.client = client_factory(api_key) if api_key else None
         self._worker: Worker | None = None
-        self._busy = False
+        self.is_busy = False  # an answer is being written
         self._links: list[str] = []
         self._pending: str | None = None  # question waiting for an API key
         self._models: list[str] | None = None  # /v1/models, fetched on first /model
@@ -219,7 +219,7 @@ class PlexApp(App):
             lst.add_option(Option(label, id=info.id))
         if not infos:
             lst.add_option(Option(Content.from_markup("[dim]No conversations yet[/]"), disabled=True))
-        if infos:
+        else:
             ids = [i.id for i in infos]
             lst.highlighted = ids.index(self.session.id) if self.session.id in ids else 0
 
@@ -296,10 +296,6 @@ class PlexApp(App):
 
     # --- asking ------------------------------------------------------------------
 
-    @property
-    def is_busy(self) -> bool:
-        return self._busy
-
     @work(exclusive=True, group="chat")
     async def ask(self, question: str) -> None:
         session, settings = self.session, self.settings
@@ -308,11 +304,11 @@ class PlexApp(App):
             await w.remove()
         self.query_one("#main").remove_class("-welcome")
         msg = AssistantMessage(settings.label)
-        self._busy = True
+        self.is_busy = True
         try:
             await self._ask(question, session, settings, chat, msg)
         finally:
-            self._busy = False
+            self.is_busy = False
             self.refresh_status()
 
     async def _ask(self, question: str, session: Session, settings: Settings,

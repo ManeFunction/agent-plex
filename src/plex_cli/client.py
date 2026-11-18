@@ -36,9 +36,6 @@ class Done:
     text: str
     sources: dict[int, Source]
     cost: float | None
-    input_tokens: int = 0
-    output_tokens: int = 0
-    response_id: str | None = None
     model: str | None = None
     effort: str | None = None  # the effort version that ran, e.g. "fast@2026-11-11.0"
 
@@ -98,7 +95,6 @@ class StreamParser:
     def __init__(self) -> None:
         self.streamed: list[str] = []
         self.sources: dict[int, Source] = {}
-        self.response_id: str | None = None
         self.done: Done | None = None
 
     def _add(self, found: list[Source]) -> list[Event]:
@@ -109,9 +105,7 @@ class StreamParser:
 
     def feed(self, ev: Any) -> list[Event]:
         kind = _get(ev, "type")
-        if kind == "response.created":
-            self.response_id = _get(_get(ev, "response"), "id") or self.response_id
-        elif kind == "response.output_text.delta":
+        if kind == "response.output_text.delta":
             if delta := _get(ev, "delta") or "":
                 self.streamed.append(delta)
                 return [TextDelta(delta)]
@@ -133,7 +127,7 @@ class StreamParser:
     def finish(self) -> Done:
         """Called when the stream closes; synthesizes Done if none arrived."""
         if self.done is None:
-            self.done = Done("".join(self.streamed), self.sources, None, response_id=self.response_id)
+            self.done = Done("".join(self.streamed), self.sources, None)
         return self.done
 
     def _completed(self, resp: Any) -> Done:
@@ -155,9 +149,6 @@ class StreamParser:
             text="".join(text_parts) or "".join(self.streamed),
             sources=self.sources,
             cost=float(cost) if cost is not None else None,
-            input_tokens=_get(usage, "input_tokens") or 0,
-            output_tokens=_get(usage, "output_tokens") or 0,
-            response_id=_get(resp, "id") or self.response_id,
             model=_get(resp, "model"),
             effort=_get(resp, "effort") or _get(resp, "preset"),
         )

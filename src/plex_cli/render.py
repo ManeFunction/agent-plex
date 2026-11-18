@@ -115,14 +115,8 @@ class Renderer:
         self._stop()
         self.err.print(Text(f"error: {msg}", style="bold red"))
 
-    def info(self, msg: str, style: str = "dim") -> None:
-        (self.err if self.raw else self.console).print(Text(msg, style=style))
-
     def print_sources(self, srcs: list[Source]) -> None:
-        if self.raw:
-            for s in srcs:
-                print(plain(f"[{s.id}] {s.title} {s.url}"))
-            return
+        """Sources below a formatted answer (raw output lists them in `finish`)."""
         self.console.print(Text("Sources", style="bold"))
         for s in srcs:
             line = Text(f" [{s.id}] ", style="cyan")

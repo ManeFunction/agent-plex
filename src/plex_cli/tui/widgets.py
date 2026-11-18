@@ -16,7 +16,6 @@ from textual.widgets.option_list import Option
 
 from ..client import Source
 from ..config import Settings
-from ..render import fmt_cost
 from .commands import COMMANDS, lookup
 from .effects import RainBackdrop
 
