@@ -6,8 +6,6 @@ It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Per
 
 > The API is billed per use with an API key. A Perplexity Pro subscription doesn't cover it. A typical `fast` answer costs about $0.002, and plex shows the cost under every answer.
 
----
-
 ## Features
 
 - Chat UI with streamed answers, inline source citations and the cost of every answer.
@@ -17,8 +15,6 @@ It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Per
 - History sidebar, command palette, `/commands` with tab completion, copy the last answer.
 - Themes: ones that keep your terminal's own colors, a few full-color ones, and your own as a small TOML file.
 - Your API key is stored in a file only you can read, or taken from `PERPLEXITY_API_KEY`.
-
----
 
 ## Installation
 
@@ -46,8 +42,6 @@ It needs Python 3.11 or newer.
     - Go to the folder with the code in your Terminal.
     - Run `pip install .` to install `per-plex` to your system.
     - Run `plex --version` to verify the install.
-
----
 
 ## Usage
 
@@ -169,8 +163,6 @@ dark = true             # false for light themes
 border = "#88C0D0"
 ```
 
----
-
 ## Development
 
 ```bash
@@ -181,8 +173,6 @@ python3 -m venv .venv
 
 A release is a tag: `vX.Y.Z` runs the tests, checks that the tag matches the version in `src/plex_cli/__init__.py`,
 builds the package, publishes it to PyPI, creates the GitHub release and bumps the formula in the Homebrew tap.
-
----
 
 ## Credits
 
