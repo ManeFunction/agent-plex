@@ -42,13 +42,31 @@ class Welcome(RainBackdrop, Static):
         ]
         body = Content.from_markup(f"[$accent b]{LOGO}[/]\n\n")
         body += Content.from_markup("[dim]Ask anything — answers are researched on the web.[/]\n\n")
-        # Join (not suffix) with spaces: a trailing gap would push each centered line left.
-        body += Content("   ").join(
-            Content.from_markup("[$secondary b]$k[/] [dim]$w[/]", k=key, w=what) for key, what in hints
+        body += self._hint_lines(
+            [Content.from_markup("[$secondary b]$k[/] [dim]$w[/]", k=key, w=what) for key, what in hints]
         )
         kind = "effort" if self.settings.is_preset else "model"
         body += Content.from_markup("\n\n[dim]$k[/] [b]$l[/]", k=kind, l=self.settings.label)
         return body
+
+    def _hint_lines(self, hints: list[Content], gap: int = 3) -> Content:
+        """Pack hints into lines that fit the width, wrapping only between whole hints.
+
+        Soft wrapping would split a hint, leaving its key at one line's end and its
+        description at the next one's start. Gaps only go between hints: a trailing
+        gap would push each centered line left.
+        """
+        width = self.content_size.width or sum(h.cell_length for h in hints) + gap * len(hints)
+        lines: list[list[Content]] = [[]]
+        used = 0
+        for hint in hints:
+            need = hint.cell_length + (gap if lines[-1] else 0)
+            if lines[-1] and used + need > width:
+                lines.append([])
+                used, need = 0, hint.cell_length
+            lines[-1].append(hint)
+            used += need
+        return Content("\n").join(Content(" " * gap).join(line) for line in lines)
 
 
 class UserMessage(Static):
