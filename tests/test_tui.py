@@ -6,6 +6,7 @@ from types import SimpleNamespace as NS
 import pytest
 from textual.widgets import OptionList
 
+from plex_cli.client import AsyncClient
 from plex_cli.config import Settings
 from plex_cli.session import Session, Store, Turn
 from plex_cli.tui import PlexApp
@@ -14,31 +15,52 @@ from plex_cli.tui.widgets import AssistantMessage, CommandMenu, PromptInput, Use
 from test_core import stream
 
 
+class FakeStream:
+    """An SDK response stream: async-iterable raw events with an async close()."""
+
+    def __init__(self, events, delay):
+        self.events, self.delay, self.closed = events, delay, False
+
+    async def __aiter__(self):
+        for ev in self.events:
+            await asyncio.sleep(self.delay)
+            yield ev
+
+    async def close(self):
+        self.closed = True
+
+
 class FakeAsync:
-    """Stands in for AsyncClient; records requests and replays canned streams."""
+    """The Perplexity API behind a real AsyncClient: replays canned raw streams and records
+    requests, so the tests cross the same seam (`responses.create`, `models.list`) as production."""
 
     instances: list["FakeAsync"] = []
 
-    def __init__(self, key, script=None, delay=0.0):
-        self.key = key
-        self.calls = []
+    def __init__(self, script=None, delay=0.0):
+        self.calls = []  # the `input` of each request
+        self.streams: list[FakeStream] = []
         self.script = script if script is not None else [stream("Hello ", "[web:1]."), stream("Again.")]
         self.delay = delay
         self.models = ["openai/gpt-6-luna", "perplexity/sonar", "xai/grok-4.7"]
         self.model_calls = 0
         FakeAsync.instances.append(self)
 
+    async def create(self, **request):
+        self.calls.append(request["input"])
+        self.streams.append(FakeStream(self.script.pop(0), self.delay))
+        return self.streams[-1]
+
     async def list_models(self):
         self.model_calls += 1
-        return self.models
+        return NS(data=[NS(id=m) for m in self.models])
 
-    async def stream_turn(self, history, settings):
-        from plex_cli.client import parse_stream
-
-        self.calls.append(history)
-        for ev in parse_stream(self.script.pop(0)):
-            await asyncio.sleep(self.delay)
-            yield ev
+    @classmethod
+    def factory(cls, **kw):
+        """A PlexApp client_factory: a real AsyncClient talking to a new fake API."""
+        def make(key):
+            fake = cls(**kw)
+            return AsyncClient(key, create=fake.create, models=lambda: fake.list_models())
+        return make
 
 
 @pytest.fixture(autouse=True)
@@ -49,7 +71,7 @@ def isolate(tmp_path, monkeypatch):
 
 
 def make_app(tmp_path, key="k", **kw):
-    return PlexApp(Settings(), key, store=Store(tmp_path / "sessions"), client_factory=FakeAsync, **kw)
+    return PlexApp(Settings(), key, store=Store(tmp_path / "sessions"), client_factory=FakeAsync.factory(), **kw)
 
 
 async def send(pilot, text):
@@ -206,7 +228,7 @@ async def test_history_sidebar_loads_session(tmp_path):
 @pytest.mark.asyncio
 async def test_cancel_with_escape_keeps_history_clean(tmp_path):
     app = PlexApp(Settings(), "k", store=Store(tmp_path / "s"),
-                  client_factory=lambda k: FakeAsync(k, script=[stream(*["x"] * 50)], delay=0.05))
+                  client_factory=FakeAsync.factory(script=[stream(*["x"] * 50)], delay=0.05))
     async with app.run_test(size=(100, 40)) as pilot:
         app.query_one(PromptInput).text = "long"
         await pilot.press("enter")
@@ -218,13 +240,14 @@ async def test_cancel_with_escape_keeps_history_clean(tmp_path):
         assert not app.is_busy
         assert app.session.turns == []
         assert "interrupted" in str(app.query_one(".meta").render())
+        assert FakeAsync.instances[0].streams[0].closed  # the SDK stream is closed on cancel
 
 
 @pytest.mark.asyncio
 async def test_failure_shows_error(tmp_path):
     bad = [[NS(type="response.failed", error=NS(message="boom"))]]
     app = PlexApp(Settings(), "k", store=Store(tmp_path / "s"),
-                  client_factory=lambda k: FakeAsync(k, script=bad))
+                  client_factory=FakeAsync.factory(script=bad))
     async with app.run_test(size=(100, 40)) as pilot:
         await send(pilot, "q")
         assert app.query_one(AssistantMessage).has_class("failed")
