@@ -202,7 +202,11 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         ok = run_turn(Client(api_key), session, settings, r, question)
         if ok and (args.resume or args.open):
-            store.save(session)
+            try:
+                store.save(session)
+            except OSError as e:
+                r.error(f"could not save the conversation: {e}")
+                return 1
         return 0 if ok else 1
 
     if not sys.stdin.isatty() or not sys.stdout.isatty():

@@ -197,3 +197,24 @@ def test_conversations_are_private(tmp_path):
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert stat.S_IMODE(store.dir.stat().st_mode) == 0o700
     assert stat.S_IMODE(store.dir.parent.stat().st_mode) == 0o700
+
+
+def test_cli_one_shot_reports_a_failed_save(tmp_path, monkeypatch, capsys):
+    from plex_cli import cli
+
+    store = _store_with_two(tmp_path)
+    monkeypatch.setattr(cli, "SESSIONS_DIR", tmp_path)
+    monkeypatch.setattr(cli, "load_state", lambda: {})
+    monkeypatch.setattr(cli, "load_file_config", lambda: {})
+    monkeypatch.setattr(cli, "resolve_api_key", lambda cfg: "pplx-key")
+    monkeypatch.setattr(cli, "Client", lambda key: None)
+    monkeypatch.setattr(cli, "run_turn", lambda *a: True)
+    monkeypatch.setattr("sys.stdin", __import__("io").StringIO(""))
+
+    def full_disk(self, s):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(Store, "save", full_disk)
+    assert cli.main(["-r", "hi"]) == 1
+    assert "could not save the conversation" in capsys.readouterr().err
+    assert len(store.list()) == 2
