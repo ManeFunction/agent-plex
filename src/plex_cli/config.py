@@ -8,6 +8,7 @@ import time
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterable
 
 EFFORTS = ("fast", "low", "medium", "high", "xhigh", "ultra")
 
@@ -50,6 +51,12 @@ CONFIG_FILE = _xdg("XDG_CONFIG_HOME", ".config") / "plex" / "config.toml"
 DATA_DIR = _xdg("XDG_DATA_HOME", ".local/share") / "plex"
 SESSIONS_DIR = DATA_DIR / "sessions"
 STATE_FILE = DATA_DIR / "state.json"
+
+
+# Settings fields kept in state.json between launches. The mode fields are saved together,
+# since a reasoning level belongs to the model it was set for.
+MODE_KEYS = ("effort", "model", "reasoning")
+STATE_KEYS = (*MODE_KEYS, "search", "theme")
 
 
 class ConfigError(Exception):
@@ -156,7 +163,7 @@ def settings_from(file_cfg: dict, state: dict | None = None) -> Settings:
     _apply(s, file_cfg, "config")
     if state:
         try:
-            _apply(s, {k: state[k] for k in ("effort", "model", "reasoning", "search", "theme") if k in state}, "state")
+            _apply(s, {k: state[k] for k in STATE_KEYS if k in state}, "state")
         except ConfigError:
             pass  # ignore a corrupt state file
         s.seen = _valid_seen(state.get("seen"))
@@ -187,9 +194,14 @@ def _write_state(state: dict, path: Path) -> None:
         pass
 
 
-def save_state(s: Settings, path: Path | None = None) -> None:
-    _write_state({"effort": s.effort, "model": s.model, "reasoning": s.reasoning, "search": s.search, "theme": s.theme,
-                  "seen": s.seen}, path or STATE_FILE)
+def save_state(s: Settings, keys: Iterable[str] = STATE_KEYS, path: Path | None = None) -> None:
+    """Write the `keys` fields of `s` into the state file, keeping everything else in it.
+
+    Callers name only what the user just changed, so one-launch overrides from command-line
+    flags (`plex -m ...`, `--no-search`) are not saved along with it.
+    """
+    path = path or STATE_FILE
+    _write_state({**load_state(path), **{k: getattr(s, k) for k in keys}}, path)
 
 
 def save_seen(seen: dict[str, dict], path: Path | None = None) -> None:

@@ -61,10 +61,23 @@ def test_auth_file_permissions_and_logout(tmp_path):
 
 def test_state_overrides_config(tmp_path):
     p = tmp_path / "state.json"
-    save_state(Settings(effort="high", search=False, theme="nord"), p)
+    save_state(Settings(effort="high", search=False, theme="nord"), path=p)
     s = settings_from({"effort": "low"}, load_state(p))
     assert (s.effort, s.search, s.theme) == ("high", False, "nord")
     assert settings_from({}, {"effort": "bogus"}).effort == "fast"  # corrupt state ignored
+
+
+def test_save_state_writes_only_the_named_fields(tmp_path):
+    p = tmp_path / "state.json"
+    save_state(Settings(effort="high", search=True, theme="nord"), path=p)
+    # Launched with `plex --no-search -m x`, then the theme was changed.
+    s = settings_from({}, load_state(p))
+    s.search = False
+    s.use_model("x")
+    s.theme = "dracula"
+    save_state(s, ("theme",), path=p)
+    state = load_state(p)
+    assert (state["effort"], state["model"], state["search"], state["theme"]) == ("high", None, True, "dracula")
 
 
 def _store_with_two(tmp_path):

@@ -20,7 +20,7 @@ from .. import auth
 from ..citations import footer_sources, normalize
 from .. import turn
 from ..client import AsyncClient, Source, api_error_message
-from ..config import DEFAULT_THEME, EFFORTS, REASONING, SESSIONS_DIR, Settings, save_state
+from ..config import DEFAULT_THEME, EFFORTS, MODE_KEYS, REASONING, SESSIONS_DIR, Settings, save_state
 from ..render import fmt_cost, plural
 from ..session import Session, Store, ago
 from .screens import (DEFAULT_REASONING, ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
@@ -176,7 +176,7 @@ class PlexApp(App):
     def save_theme(self) -> None:
         if self.settings.theme != self.theme:
             self.settings.theme = self.theme
-            save_state(self.settings)
+            save_state(self.settings, ("theme",))
 
     def action_change_theme(self) -> None:
         self.push_screen(ThemePalette(), lambda _: self.save_theme())
@@ -465,13 +465,13 @@ class PlexApp(App):
 
     def set_effort(self, effort: str) -> None:
         self.settings.use_preset(effort)
-        save_state(self.settings)
+        save_state(self.settings, MODE_KEYS)
         self.refresh_status()
         self.notify(f"Effort: {effort}")
 
     def set_reasoning(self, level: str | None) -> None:
         self.settings.set_reasoning(level)
-        save_state(self.settings)
+        save_state(self.settings, MODE_KEYS)
         self.refresh_status()
         self.notify(f"Reasoning: {level or 'model default'}")
 
@@ -492,7 +492,7 @@ class PlexApp(App):
 
     def set_model(self, model: str | None) -> None:
         self.settings.use_model(model)
-        save_state(self.settings)
+        save_state(self.settings, MODE_KEYS)
         self.refresh_status()
         self.notify(f"Model: {model or 'preset ' + self.settings.effort}")
 
@@ -529,7 +529,7 @@ class PlexApp(App):
                 self.action_pick_model()
         elif cmd == "search":
             s.search = (arg == "on") if arg in ("on", "off") else not s.search
-            save_state(s)
+            save_state(s, ("search",))
             self.refresh_status()
             self.notify(f"Web search {'on' if s.search else 'off'}")
         elif cmd == "sources":

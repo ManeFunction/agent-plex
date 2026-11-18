@@ -43,7 +43,6 @@ class FakeAsync:
 
 @pytest.fixture(autouse=True)
 def isolate(tmp_path, monkeypatch):
-    monkeypatch.setattr("plex_cli.tui.app.save_state", lambda s: None)
     monkeypatch.setattr("plex_cli.auth.AUTH_FILE", tmp_path / "auth.json")
     monkeypatch.setattr("plex_cli.tui.themes.USER_THEMES_DIR", tmp_path / "themes")
     FakeAsync.instances.clear()
@@ -285,8 +284,9 @@ async def test_clear_is_suggested_in_command_menu(tmp_path):
 async def test_theme_picker_previews_and_reverts(tmp_path, monkeypatch):
     from plex_cli.tui.screens import ThemePalette
 
-    saved = []
-    monkeypatch.setattr("plex_cli.tui.app.save_state", lambda s: saved.append(s.theme))
+    from plex_cli.config import load_state
+
+    saved = lambda: load_state().get("theme")  # noqa: E731
     app = make_app(tmp_path)
     async with app.run_test(size=(100, 40)) as pilot:
         start = app.theme
@@ -301,12 +301,12 @@ async def test_theme_picker_previews_and_reverts(tmp_path, monkeypatch):
         await pilot.press("down")
         await pilot.pause()
         assert app.theme not in (start, previewed)
-        assert saved == []  # nothing persisted while previewing
+        assert saved() is None  # nothing persisted while previewing
 
         await pilot.press("escape")
         await pilot.pause()
         assert app.theme == start
-        assert saved == []
+        assert saved() is None
 
         app.action_change_theme()
         await pilot.pause()
@@ -317,7 +317,7 @@ async def test_theme_picker_previews_and_reverts(tmp_path, monkeypatch):
         await pilot.pause()
         assert not isinstance(app.screen, ThemePalette)
         assert app.theme == chosen != start
-        assert saved == [chosen]
+        assert saved() == chosen
 
 
 @pytest.mark.asyncio
