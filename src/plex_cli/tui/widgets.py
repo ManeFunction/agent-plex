@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Callable
 from urllib.parse import urlparse
 
 from textual import events
@@ -166,17 +167,37 @@ class PromptInput(TextArea):
             super().__init__()
             self.text = text
 
-    class HistoryRequest(Message):
-        def __init__(self, direction: int) -> None:
-            super().__init__()
-            self.direction = direction
-
     NEWLINE_KEYS = {"shift+enter", "alt+enter", "ctrl+j", "newline", "ctrl+enter"}
 
     def __init__(self, **kwargs) -> None:
         super().__init__(soft_wrap=True, show_line_numbers=False, compact=True,
                          highlight_cursor_line=False, **kwargs)
         self.menu: CommandMenu | None = None
+        self.past_messages: Callable[[], list[str]] = list  # oldest first, for ↑/↓ recall
+        self._recall_index: int | None = None
+        self._recalling = False  # the text is a recalled message, so ↑/↓ keep browsing
+
+    def reset_recall(self) -> None:
+        self._recall_index = None
+        self._recalling = False
+
+    def _recall(self, direction: int) -> None:
+        past = self.past_messages()
+        if not past:
+            return
+        if self._recall_index is None:
+            if direction > 0:
+                return
+            self._recall_index = len(past)
+        self._recall_index += direction
+        if self._recall_index >= len(past):
+            self.reset_recall()
+            self.text = ""
+            return
+        self._recall_index = max(0, self._recall_index)
+        self.text = past[self._recall_index]
+        self.move_cursor(self.document.end)
+        self._recalling = True
 
     def _menu_open(self) -> bool:
         return bool(self.menu and self.menu.display and self.menu.option_count)
@@ -210,10 +231,10 @@ class PromptInput(TextArea):
             event.prevent_default(); event.stop()
             self.insert("\n")
             return
-        if key in ("up", "down") and (not self.text or getattr(self, "_recalling", False)):
+        if key in ("up", "down") and (not self.text or self._recalling):
             if key == "up" or self.text:
                 event.prevent_default(); event.stop()
-                self.post_message(self.HistoryRequest(-1 if key == "up" else 1))
+                self._recall(-1 if key == "up" else 1)
                 return
         self._recalling = False
         await super()._on_key(event)

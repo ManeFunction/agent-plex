@@ -84,7 +84,6 @@ class PlexApp(App):
         self._worker: Worker | None = None
         self._busy = False
         self._links: list[str] = []
-        self._recall_index: int | None = None
         self._pending: str | None = None  # question waiting for an API key
         self._models: list[str] | None = None  # /v1/models, fetched on first /model
         self.rain = RainField()  # drawn by the background widgets when the theme asks for it
@@ -113,6 +112,7 @@ class PlexApp(App):
         self.theme_changed_signal.subscribe(self, self._on_theme_changed)
         prompt = self.query_one(PromptInput)
         prompt.menu = self.query_one(CommandMenu)
+        prompt.past_messages = lambda: [t.user for t in self.session.turns]
         self.query_one(CommandMenu).display = False
         self.query_one("#sidebar").display = False
         self.query_one("#chat").anchor()
@@ -225,7 +225,7 @@ class PlexApp(App):
 
     async def show_session(self, session: Session) -> None:
         self.session = session
-        self._recall_index = None
+        self.query_one(PromptInput).reset_recall()
         chat = self.query_one("#chat", VerticalScroll)
         await chat.remove_children()
         self._links.clear()
@@ -272,27 +272,6 @@ class PlexApp(App):
         prompt.move_cursor(prompt.document.end)
         prompt.focus()
 
-    @on(PromptInput.HistoryRequest)
-    def _recall(self, event: PromptInput.HistoryRequest) -> None:
-        past = [t.user for t in self.session.turns]
-        if not past:
-            return
-        prompt = self.query_one(PromptInput)
-        if self._recall_index is None:
-            if event.direction > 0:
-                return
-            self._recall_index = len(past)
-        self._recall_index += event.direction
-        if self._recall_index >= len(past):
-            self._recall_index = None
-            prompt.text = ""
-            prompt._recalling = False
-            return
-        self._recall_index = max(0, self._recall_index)
-        prompt.text = past[self._recall_index]
-        prompt.move_cursor(prompt.document.end)
-        prompt._recalling = True
-
     @on(PromptInput.Submitted)
     async def _submitted(self, event: PromptInput.Submitted) -> None:
         text = event.text.strip()
@@ -308,8 +287,7 @@ class PlexApp(App):
             self.notify("Still answering — press esc to cancel.", severity="warning")
             return
         prompt.text = ""
-        self._recall_index = None
-        prompt._recalling = False
+        prompt.reset_recall()
         if self.client is None:
             self._pending = text
             self.ask_for_key()

@@ -578,3 +578,28 @@ async def test_aliases_and_palette_run_commands(tmp_path):
         assert app.settings.search is False
         await send(pilot, "/q")
     assert app.return_code == 0
+
+
+@pytest.mark.asyncio
+async def test_up_and_down_recall_past_messages(tmp_path):
+    app = make_app(tmp_path)
+    async with app.run_test(size=(100, 40)) as pilot:
+        await send(pilot, "one")
+        await send(pilot, "two")
+        prompt = app.query_one(PromptInput)
+        await pilot.press("up")
+        assert prompt.text == "two"
+        await pilot.press("up", "up")
+        assert prompt.text == "one"  # stops at the oldest
+        await pilot.press("down")
+        assert prompt.text == "two"
+        await pilot.press("down")
+        assert prompt.text == ""
+        await pilot.press("up", "x")  # typing ends browsing; arrows move the cursor again
+        await pilot.press("up")
+        assert prompt.text == "twox"
+        await pilot.press("ctrl+n")
+        await pilot.pause()
+        prompt.text = ""
+        await pilot.press("up")
+        assert prompt.text == ""  # a new chat has nothing to recall
