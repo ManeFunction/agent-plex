@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
+from .files import atomic_write_json
+
 EFFORTS = ("fast", "low", "medium", "high", "xhigh", "ultra")
 
 EFFORT_INFO = {
@@ -188,10 +190,9 @@ def load_state(path: Path | None = None) -> dict:
 
 def _write_state(state: dict, path: Path) -> None:
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(state, indent=2))
+        atomic_write_json(path, state)
     except OSError:
-        pass
+        pass  # remembering the last-used settings is best effort
 
 
 def save_state(s: Settings, keys: Iterable[str] = STATE_KEYS, path: Path | None = None) -> None:

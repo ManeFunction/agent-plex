@@ -7,10 +7,10 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 from .config import DATA_DIR
+from .files import atomic_write_json
 
 AUTH_FILE = DATA_DIR / "auth.json"
 PROVIDER = "perplexity"
@@ -42,13 +42,7 @@ def set_key(key: str, path: Path | None = None) -> Path:
         raise ValueError("empty API key")
     data = _read(path)
     data[PROVIDER] = {"type": "api", "key": key}
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    tmp = path.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        json.dump(data, f, indent=2)
-    os.chmod(tmp, 0o600)
-    os.replace(tmp, path)
+    atomic_write_json(path, data, mode=0o600, dir_mode=0o700)
     return path
 
 
@@ -59,9 +53,7 @@ def remove_key(path: Path | None = None) -> bool:
         return False
     del data[PROVIDER]
     if data:  # keep other providers untouched
-        fd = os.open(path, os.O_WRONLY | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
-            json.dump(data, f, indent=2)
+        atomic_write_json(path, data, mode=0o600, dir_mode=0o700)
     else:
         path.unlink(missing_ok=True)
     return True

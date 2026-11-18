@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .client import Source
+from .files import atomic_write_json
 
 MAX_TURNS = 20  # user+assistant pairs kept in the replayed input
 TITLE_LEN = 60
@@ -133,11 +134,8 @@ class Store:
     def save(self, s: Session) -> Path:
         if not s.turns:
             return self.path(s.id)
-        self.dir.mkdir(parents=True, exist_ok=True)
         p = self.path(s.id)
-        tmp = p.with_suffix(".tmp")
-        tmp.write_text(json.dumps(s.to_json(), ensure_ascii=False, indent=2))
-        tmp.replace(p)
+        atomic_write_json(p, s.to_json())
         return p
 
     def load(self, sid: str) -> Session:

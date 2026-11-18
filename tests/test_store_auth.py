@@ -59,6 +59,27 @@ def test_auth_file_permissions_and_logout(tmp_path):
     assert auth.mask("pplx-secret-key-123") == "pplx-…-123"
 
 
+def test_logout_keeps_other_providers(tmp_path):
+    path = tmp_path / "auth.json"
+    path.write_text(json.dumps({"other": {"key": "x"}}))
+    auth.set_key("pplx-secret-key-123", path)
+    assert auth.remove_key(path)
+    assert json.loads(path.read_text()) == {"other": {"key": "x"}}
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["auth.json"]  # no temp file left
+
+
+def test_atomic_write_keeps_old_file_on_failure(tmp_path):
+    from plex_cli.files import atomic_write_json
+
+    path = tmp_path / "a" / "state.json"
+    atomic_write_json(path, {"ok": 1})
+    with pytest.raises(TypeError):
+        atomic_write_json(path, {"bad": object()})
+    assert json.loads(path.read_text()) == {"ok": 1}
+    assert not path.with_suffix(".tmp").exists()
+
+
 def test_state_overrides_config(tmp_path):
     p = tmp_path / "state.json"
     save_state(Settings(effort="high", search=False, theme="nord"), path=p)
