@@ -3,7 +3,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 from plex_cli import session as sess
-from plex_cli.citations import cited_ids, footer_sources, normalize
+from plex_cli.citations import cited_ids, footer_sources, for_display, normalize
 from plex_cli.cli import run_turn
 from plex_cli.client import (
     Client, Done, Searching, Source, SourcesFound, TextDelta, TurnFailed,
@@ -383,3 +383,8 @@ def test_cli_model_effort_needs_a_model(monkeypatch, capsys):
     monkeypatch.setattr("plex_cli.cli.load_state", lambda: {})
     assert main(["--model-effort", "high", "hi"]) == 2
     assert "needs a selected model (add -m <id>)" in capsys.readouterr().err
+
+
+def test_for_display_normalizes_and_lists_cited_sources():
+    srcs = {1: Source(1, "https://a"), 2: Source(2, "https://b")}
+    assert for_display("B [web:2], A [1].", srcs) == ("B [2], A [1].", [srcs[2], srcs[1]])

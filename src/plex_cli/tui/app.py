@@ -19,7 +19,7 @@ from textual.widgets.option_list import Option
 from textual.worker import Worker
 
 from .. import auth
-from ..citations import footer_sources, normalize
+from ..citations import footer_sources, for_display, normalize
 from .. import turn
 from ..client import AsyncClient, Source, api_error_message
 from ..config import DEFAULT_THEME, EFFORTS, MODE_KEYS, SESSIONS_DIR, Settings, save_state
@@ -235,9 +235,9 @@ class PlexApp(App):
         if not session.turns:
             await chat.mount(Welcome(self.settings))
         for t in session.turns:
-            msg = AssistantMessage(t.model or "", normalize(t.assistant, t.sources))
+            text, srcs = for_display(t.assistant, t.sources)
+            msg = AssistantMessage(t.model or "", text)
             await chat.mount_all([UserMessage(t.user), msg])
-            srcs = footer_sources(t.assistant, t.sources)
             msg.finish(srcs, fmt_cost(t.cost), self._register_links(srcs))
         chat.scroll_end(animate=False)
         self.refresh_status()
@@ -336,10 +336,9 @@ class PlexApp(App):
             return
         await view.stop()
 
-        text = normalize(done.text, done.sources)
+        text, srcs = for_display(done.text, done.sources)
         if text != msg.markdown.source:
             await msg.markdown.update(text)
-        srcs = footer_sources(text, done.sources)
         meta = " · ".join(x for x in (fmt_cost(done.cost), f"{msg.elapsed:.1f}s", done.model) if x)
         msg.finish(srcs, meta, self._register_links(srcs))
         turn.complete(session, settings, question, done)

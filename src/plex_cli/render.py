@@ -11,7 +11,7 @@ from rich.markdown import Markdown
 from rich.spinner import Spinner
 from rich.text import Text
 
-from .citations import footer_sources, normalize
+from .citations import for_display
 from .client import Done, Source
 from .turn import searching_status
 
@@ -79,8 +79,7 @@ class Renderer:
 
     def finish(self, done: Done, session_total: float | None = None) -> None:
         self._stop()
-        text = normalize(done.text, done.sources)
-        srcs = footer_sources(text, done.sources)
+        text, srcs = for_display(done.text, done.sources)
         if self.raw:
             if not self._text:  # nothing streamed (e.g. text only in final response)
                 sys.stdout.write(plain(text))

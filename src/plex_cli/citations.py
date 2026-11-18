@@ -34,3 +34,9 @@ def footer_sources(text: str, sources: dict[int, Source]) -> list[Source]:
     if cited:
         return cited
     return [sources[i] for i in sorted(sources)]
+
+
+def for_display(text: str, sources: dict[int, Source]) -> tuple[str, list[Source]]:
+    """An answer as it is shown: its text with markers normalized, and the sources listed under it."""
+    text = normalize(text, sources)
+    return text, footer_sources(text, sources)
