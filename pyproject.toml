@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plex-cli"
+version = "0.1.0"
+description = "Chat with Perplexity from your terminal (Agent API)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "perplexityai>=0.47",
+    "rich>=13",
+    "textual>=8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+plex = "plex_cli.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plex_cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+asyncio_default_fixture_loop_scope = "function"

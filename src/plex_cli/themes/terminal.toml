@@ -1,0 +1,4 @@
+# Your terminal's own background, text and palette. The accent is the
+# terminal's blue, so this fits any color scheme, light or dark.
+terminal = true
+accent = "ansi_blue"

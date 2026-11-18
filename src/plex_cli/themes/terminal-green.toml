@@ -1,0 +1,4 @@
+# Your terminal's own background and text, in the green of falling digital rain.
+terminal = true
+accent = "#00FF41"      # bright code green
+secondary = "#008F11"   # dimmer green: your messages, key hints

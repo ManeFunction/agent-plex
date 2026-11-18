@@ -1,0 +1,3 @@
+# Your terminal's own background, text and palette, with a violet accent.
+terminal = true
+accent = "#9D7CD8"

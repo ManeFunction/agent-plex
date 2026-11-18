@@ -1,0 +1,175 @@
+"""Settings, persisted UI state and API-key resolution."""
+
+from __future__ import annotations
+
+import json
+import os
+import time
+import tomllib
+from dataclasses import dataclass, field
+from pathlib import Path
+
+EFFORTS = ("fast", "low", "medium", "high", "xhigh", "ultra")
+
+EFFORT_INFO = {
+    "fast": "single quick search · cheapest (~$0.002)",
+    "low": "a few research steps",
+    "medium": "more thorough research",
+    "high": "deep research, slower",
+    "xhigh": "long multi-step research · expensive",
+    "ultra": "maximum effort · most expensive",
+}
+
+# Reasoning effort for a manually selected model (`reasoning.effort` in the API).
+REASONING = ("minimal", "low", "medium", "high", "xhigh", "max")
+
+REASONING_INFO = {
+    "minimal": "barely thinks · fastest",
+    "low": "light reasoning",
+    "medium": "balanced",
+    "high": "thinks longer",
+    "xhigh": "extended reasoning · slower",
+    "max": "maximum reasoning · slowest",
+}
+
+DEFAULT_THEME = "terminal"
+
+DEFAULT_INSTRUCTIONS = (
+    "You are a helpful research assistant answering in a terminal chat. "
+    "Be concise and use Markdown. When you use web sources, cite them inline "
+    "with square brackets containing the source index, e.g. [1] or [2]; "
+    "never group them like [1, 2] or [1-2]."
+)
+
+
+def _xdg(var: str, fallback: str) -> Path:
+    return Path(os.environ.get(var) or Path.home() / fallback)
+
+
+CONFIG_FILE = _xdg("XDG_CONFIG_HOME", ".config") / "plex" / "config.toml"
+DATA_DIR = _xdg("XDG_DATA_HOME", ".local/share") / "plex"
+SESSIONS_DIR = DATA_DIR / "sessions"
+STATE_FILE = DATA_DIR / "state.json"
+
+
+class ConfigError(Exception):
+    pass
+
+
+@dataclass
+class Settings:
+    """Per-request settings. `model` set means direct-model mode, else `effort` preset."""
+
+    effort: str = "fast"
+    model: str | None = None
+    reasoning: str | None = None  # model mode only; None leaves it to the model's default
+    search: bool = True
+    instructions: str = DEFAULT_INSTRUCTIONS
+    max_steps: int = 5
+    theme: str = DEFAULT_THEME
+    extra: dict = field(default_factory=dict)
+    # Last model seen serving each effort level: {level: {"model", "version", "at"}}.
+    seen: dict[str, dict] = field(default_factory=dict)
+
+    def note_seen(self, effort: str | None, model: str | None, now: float | None = None) -> bool:
+        """Record which model served an effort level. `effort` is as the API reports it,
+        e.g. "fast@2026-11-11.0". Returns whether anything was recorded."""
+        level, _, version = (effort or "").partition("@")
+        if level not in EFFORTS or not model:
+            return False
+        self.seen[level] = {"model": model, "version": version or None, "at": now or time.time()}
+        return True
+
+    @property
+    def label(self) -> str:
+        if self.model:
+            mode = f"{self.model}:{self.reasoning}" if self.reasoning else self.model
+        else:
+            mode = self.effort
+        return mode if self.search else f"{mode} · no search"
+
+
+def load_file_config(path: Path = CONFIG_FILE) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return tomllib.loads(path.read_text())
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        raise ConfigError(f"Cannot read {path}: {e}") from e
+
+
+def _apply(s: Settings, cfg: dict, source: str) -> None:
+    if (e := cfg.get("effort")) is not None:
+        if e not in EFFORTS:
+            raise ConfigError(f"Invalid effort {e!r} in {source}; choose from {', '.join(EFFORTS)}")
+        s.effort = e
+    if "model" in cfg:
+        s.model = cfg["model"] or None
+    if "reasoning" in cfg:
+        r = cfg["reasoning"] or None
+        if r is not None and r not in REASONING:
+            raise ConfigError(f"Invalid reasoning {r!r} in {source}; choose from {', '.join(REASONING)}")
+        s.reasoning = r
+    if "search" in cfg:
+        s.search = bool(cfg["search"])
+    if cfg.get("instructions"):
+        s.instructions = cfg["instructions"]
+    if "max_steps" in cfg:
+        s.max_steps = int(cfg["max_steps"])
+    if cfg.get("theme"):
+        s.theme = str(cfg["theme"])
+
+
+def settings_from(file_cfg: dict, state: dict | None = None) -> Settings:
+    """config.toml defaults, then last-used UI state on top."""
+    s = Settings()
+    _apply(s, file_cfg, "config")
+    if state:
+        try:
+            _apply(s, {k: state[k] for k in ("effort", "model", "reasoning", "search", "theme") if k in state}, "state")
+        except ConfigError:
+            pass  # ignore a corrupt state file
+        s.seen = _valid_seen(state.get("seen"))
+    return s
+
+
+def _valid_seen(raw: object) -> dict[str, dict]:
+    if not isinstance(raw, dict):
+        return {}
+    return {k: v for k, v in raw.items()
+            if k in EFFORTS and isinstance(v, dict) and isinstance(v.get("model"), str)
+            and isinstance(v.get("at"), (int, float))}
+
+
+def load_state(path: Path | None = None) -> dict:
+    try:
+        data = json.loads((path or STATE_FILE).read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _write_state(state: dict, path: Path) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, indent=2))
+    except OSError:
+        pass
+
+
+def save_state(s: Settings, path: Path | None = None) -> None:
+    _write_state({"effort": s.effort, "model": s.model, "reasoning": s.reasoning, "search": s.search, "theme": s.theme,
+                  "seen": s.seen}, path or STATE_FILE)
+
+
+def save_seen(seen: dict[str, dict], path: Path | None = None) -> None:
+    """Update only the seen-models part of the state (one-shot mode keeps the rest as is)."""
+    path = path or STATE_FILE
+    _write_state({**load_state(path), "seen": seen}, path)
+
+
+def resolve_api_key(file_cfg: dict) -> str | None:
+    """PERPLEXITY_API_KEY env > auth.json (`plex auth login`) > config.toml api_key."""
+    from .auth import get_key
+
+    return os.environ.get("PERPLEXITY_API_KEY") or get_key() or file_cfg.get("api_key") or None

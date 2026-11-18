@@ -1,0 +1,3 @@
+# Your terminal's own background, text and palette, with a coral accent.
+terminal = true
+accent = "#D97757"
