@@ -14,7 +14,7 @@ from typing import Any, AsyncIterable, Iterable, Protocol
 
 from .client import Done, Event, Searching, Source, SourcesFound, TextDelta, TurnFailed, api_error_message, \
     is_auth_error
-from .config import Settings, save_seen
+from .config import Settings, save_state
 from .session import Session, Turn
 
 
@@ -91,4 +91,4 @@ def complete(session: Session, settings: Settings, question: str, done: Done) ->
     """Commit an answered turn and remember which model served the effort preset."""
     session.commit(Turn(question, done.text, done.sources, done.cost, done.model))
     if settings.is_preset and settings.note_seen(done.effort, done.model):
-        save_seen(settings.seen)
+        save_state(settings, ("seen",))  # only `seen`: one-shot flags must not be saved

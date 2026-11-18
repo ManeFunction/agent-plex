@@ -245,7 +245,7 @@ def test_done_carries_effort_version():
 
 
 def test_note_seen_and_state_round_trip(tmp_path):
-    from plex_cli.config import load_state, save_seen, save_state
+    from plex_cli.config import load_state, save_state
 
     s = Settings()
     assert s.note_seen("high@2026-10-28.0", "openai/gpt-6.1-terra", now=100)
@@ -253,12 +253,12 @@ def test_note_seen_and_state_round_trip(tmp_path):
     assert not s.note_seen("bogus@1", "x") and not s.note_seen(None, "x") and not s.note_seen("low", None)
 
     p = tmp_path / "state.json"
-    save_seen(s.seen, p)
+    save_state(s, ("seen",), path=p)
     assert settings_from({}, load_state(p)).seen == s.seen
     # Saving `seen` keeps the saved effort, and saving settings keeps `seen`.
     save_state(Settings(effort="medium"), path=p)
     assert load_state(p)["seen"] == s.seen
-    save_seen(s.seen, p)
+    save_state(s, ("seen",), path=p)
     state = load_state(p)
     assert state["effort"] == "medium" and state["seen"] == s.seen
     # Junk in the state file is dropped.

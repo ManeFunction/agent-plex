@@ -194,13 +194,6 @@ def load_state(path: Path | None = None) -> dict:
         return {}
 
 
-def _write_state(state: dict, path: Path) -> None:
-    try:
-        atomic_write_json(path, state, dir_mode=0o700)  # the private data folder, see Store.save
-    except OSError:
-        pass  # remembering the last-used settings is best effort
-
-
 def save_state(s: Settings, keys: Iterable[str] = STATE_KEYS, path: Path | None = None) -> None:
     """Write the `keys` fields of `s` into the state file, keeping everything else in it.
 
@@ -208,10 +201,7 @@ def save_state(s: Settings, keys: Iterable[str] = STATE_KEYS, path: Path | None 
     flags (`plex -m ...`, `--no-search`) are not saved along with it.
     """
     path = path or STATE_FILE
-    _write_state({**load_state(path), **{k: getattr(s, k) for k in keys}}, path)
-
-
-def save_seen(seen: dict[str, dict], path: Path | None = None) -> None:
-    """Update only the seen-models part of the state (one-shot mode keeps the rest as is)."""
-    path = path or STATE_FILE
-    _write_state({**load_state(path), "seen": seen}, path)
+    try:  # the private data folder, see Store.save
+        atomic_write_json(path, {**load_state(path), **{k: getattr(s, k) for k in keys}}, dir_mode=0o700)
+    except OSError:
+        pass  # remembering the last-used settings is best effort
