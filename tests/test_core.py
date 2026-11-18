@@ -352,6 +352,9 @@ def test_bad_config_values_are_config_errors(tmp_path, monkeypatch, capsys):
 
     with pytest.raises(ConfigError, match="max_steps"):
         settings_from({"max_steps": "abc"})
+    with pytest.raises(ConfigError, match="search"):
+        settings_from({"search": "false"})  # a string is truthy; it must not turn search on
+    assert not settings_from({"search": False}, {"search": "yes"}).search
     bad = tmp_path / "config.toml"
     bad.write_text("effort = \n")
     monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: load_file_config(bad))

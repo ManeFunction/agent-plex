@@ -150,7 +150,9 @@ def _apply(s: Settings, cfg: dict, source: str) -> None:
             raise ConfigError(f"Invalid reasoning {r!r} in {source}; choose from {', '.join(REASONING)}")
         s.reasoning = r
     if "search" in cfg:
-        s.search = bool(cfg["search"])
+        if not isinstance(cfg["search"], bool):
+            raise ConfigError(f"Invalid search {cfg['search']!r} in {source}; use true or false")
+        s.search = cfg["search"]
     if cfg.get("instructions"):
         s.instructions = cfg["instructions"]
     if "max_steps" in cfg:
