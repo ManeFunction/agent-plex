@@ -550,3 +550,31 @@ async def test_delete_while_answering_cancels_the_answer(tmp_path):
         assert app.return_code is None  # still running, no crash
         assert not app.store.path(sid).exists()
         assert app.session.turns == [] and app.query(Welcome)
+
+
+def test_every_command_has_a_handler():
+    from plex_cli.tui.commands import COMMANDS, lookup
+
+    for c in COMMANDS:
+        assert callable(getattr(PlexApp, c.handler, None)), c.handler
+        for name in (c.name, *c.aliases):
+            assert lookup(name) is c
+            assert lookup(name.upper()) is c
+    assert lookup("nope") is None
+
+
+@pytest.mark.asyncio
+async def test_aliases_and_palette_run_commands(tmp_path):
+    app = make_app(tmp_path)
+    async with app.run_test(size=(100, 40)) as pilot:
+        await send(pilot, "first question")
+        await send(pilot, "/CLEAR")
+        assert app.session.turns == []
+        titles = [c.title for c in app.get_system_commands(app.screen)]
+        assert {"New chat", "Toggle web search", "Set API key", "Help"} <= set(titles)
+        search = next(c for c in app.get_system_commands(app.screen) if c.title == "Toggle web search")
+        search.callback()
+        await pilot.pause()
+        assert app.settings.search is False
+        await send(pilot, "/q")
+    assert app.return_code == 0

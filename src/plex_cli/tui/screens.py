@@ -18,7 +18,7 @@ from textual.widgets.option_list import Option
 from ..auth import AUTH_FILE
 from ..config import EFFORT_INFO, EFFORTS, REASONING, REASONING_INFO
 from ..session import ago
-from .widgets import COMMANDS
+from .commands import COMMANDS
 
 
 class Dialog(ModalScreen):
@@ -157,8 +157,8 @@ class HelpScreen(Dialog):
         for k, d in KEYS:
             body += Content.from_markup("  [$secondary]$k[/]  [dim]$d[/]\n", k=f"{k:<34}", d=d)
         body += Content.from_markup("\n[b]Commands[/]\n")
-        for name, desc, _ in COMMANDS:
-            body += Content.from_markup("  [$secondary]$n[/]  [dim]$d[/]\n", n=f"/{name:<33}", d=desc)
+        for c in COMMANDS:
+            body += Content.from_markup("  [$secondary]$n[/]  [dim]$d[/]\n", n=f"/{c.name:<33}", d=c.help)
         with Vertical(classes="dialog wide"):
             yield Static(body)
             yield Static(Content.from_markup("[dim]esc to close[/]"), classes="hint")

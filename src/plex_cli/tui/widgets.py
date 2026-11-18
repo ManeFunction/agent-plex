@@ -16,6 +16,7 @@ from textual.widgets.option_list import Option
 from ..client import Source
 from ..config import Settings
 from ..render import fmt_cost
+from .commands import COMMANDS, lookup
 from .effects import RainBackdrop
 
 SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -23,28 +24,6 @@ SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 LOGO = """\
 █▀█ █   █▀▀ ▀▄▀
 █▀▀ █▄▄ ██▄ █ █"""
-
-# name, description, takes_argument
-COMMANDS: list[tuple[str, str, bool]] = [
-    ("exit", "Exit plex", False),
-    ("history", "Browse chat history", False),
-    ("auto-effort", "Pick a research effort preset (drops a selected model)", False),
-    ("model", "Pick a model from a list, or /model <id> · /model off", False),
-    ("effort", "Reasoning effort for the selected model", False),
-    ("clear", "Start a new conversation", False),
-    ("search", "Toggle web search", False),
-    ("sources", "List sources of the last answer", False),
-    ("copy", "Copy the last answer to the clipboard", False),
-    ("rename", "Rename this conversation: /rename <title>", True),
-    ("delete", "Delete this conversation", False),
-    ("new", "Start a new conversation", False),
-    ("theme", "Change the color theme", False),
-    ("login", "Set your Perplexity API key", False),
-    ("help", "Keys and commands", False),
-    ("quit", "Exit plex", False),
-]
-COMMAND_ARGS = {name: takes for name, _, takes in COMMANDS}
-
 
 def domain(url: str) -> str:
     host = urlparse(url).netloc or url
@@ -164,7 +143,7 @@ class CommandMenu(OptionList):
 
     def filter(self, prefix: str) -> bool:
         prefix = prefix.lower()
-        matches = [(n, d) for n, d, _ in COMMANDS if n.startswith(prefix)]
+        matches = [(c.name, c.help) for c in COMMANDS if c.name.startswith(prefix)]
         self.clear_options()
         for n, d in matches:
             self.add_option(Option(Content.from_markup("[b]/$n[/]  [dim]$d[/]", n=n, d=d), id=n))
@@ -213,7 +192,7 @@ class PromptInput(TextArea):
                 event.prevent_default(); event.stop()
                 cmd = self.menu.selected_command
                 if cmd:
-                    if key == "tab" or COMMAND_ARGS.get(cmd):
+                    if key == "tab" or lookup(cmd).fill_on_enter:
                         self.text = f"/{cmd} "
                         self.move_cursor(self.document.end)
                     else:

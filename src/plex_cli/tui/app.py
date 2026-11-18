@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
+from functools import partial
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -25,6 +27,7 @@ from ..render import fmt_cost, plural
 from ..session import Session, Store, ago
 from .screens import (DEFAULT_REASONING, ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
                       ModelPalette, ReasoningScreen, ThemePalette)
+from .commands import COMMANDS, lookup
 from .effects import BackdropScroll, BackdropVertical, RainField
 from .themes import load_themes
 from .widgets import AssistantMessage, CommandMenu, PromptInput, UserMessage, Welcome
@@ -500,95 +503,107 @@ class PlexApp(App):
         self.push_screen(HelpScreen())
 
     async def run_command(self, line: str) -> None:
-        cmd, _, arg = line[1:].partition(" ")
-        cmd, arg = cmd.lower(), arg.strip()
-        s = self.settings
-        if cmd in ("quit", "exit", "q"):
-            self.exit()
-        elif cmd in ("new", "clear"):
-            await self.action_new_chat()
-        elif cmd == "history":
-            self.action_toggle_sidebar()
-        elif cmd == "effort":
-            if arg and arg not in REASONING and arg != DEFAULT_REASONING:
-                self.notify(f"Unknown model effort. Choose: {', '.join(REASONING)}, default",
-                            severity="error")
-            else:
-                self.action_pick_model_effort(arg or None)
-        elif cmd == "auto-effort":
-            if arg in EFFORTS:
-                self.set_effort(arg)
-            elif arg:
-                self.notify(f"Unknown effort. Choose: {', '.join(EFFORTS)}", severity="error")
-            else:
-                self.action_pick_effort()
-        elif cmd == "model":
-            if arg:
-                self.set_model(None if arg in ("off", "none", "preset") else arg)
-            else:
-                self.action_pick_model()
-        elif cmd == "search":
-            s.search = (arg == "on") if arg in ("on", "off") else not s.search
-            save_state(s, ("search",))
-            self.refresh_status()
-            self.notify(f"Web search {'on' if s.search else 'off'}")
-        elif cmd == "sources":
-            last = self.session.last
-            if not last or not last.sources:
-                self.notify("No sources for the last answer.")
-            else:
-                lines = [f"[{x.id}] {x.title or x.url}\n    {x.url}"
-                         for x in footer_sources(last.assistant, last.sources)]
-                self.notify("\n".join(lines), title="Sources", timeout=15)
-        elif cmd == "copy":
-            last = self.session.last
-            if not last:
-                self.notify("Nothing to copy yet.")
-            else:
-                self.copy_to_clipboard(normalize(last.assistant, last.sources))
-                self.notify("Copied the last answer.")
-        elif cmd == "rename":
-            if not arg:
-                self.notify("Usage: /rename <title>")
-            elif not self.session.turns:
-                self.notify("Send a message first.")
-            else:
-                self.session.title = arg
-                self.store.save(self.session)
-                self.refresh_status()
-                self.refresh_sidebar()
-        elif cmd == "delete":
-            if not self.session.turns:
-                self.notify("Nothing to delete.")
-                return
+        name, _, arg = line[1:].partition(" ")
+        command = lookup(name)
+        if command is None:
+            self.notify(f"Unknown command /{name.lower()}. Type / to see commands.", severity="error")
+            return
+        result = getattr(self, command.handler)(arg.strip())
+        if inspect.isawaitable(result):
+            await result
 
-            async def confirmed(yes: bool | None) -> None:
-                if yes:
-                    if self.is_busy:  # the answer being written belongs to this conversation
-                        self._worker.cancel()
-                    self.store.delete(self.session.id)
-                    await self.show_session(Session())
-                    self.notify("Conversation deleted.")
+    # One handler per entry in commands.COMMANDS; each gets the text after the command.
 
-            self.push_screen(ConfirmScreen(f"Delete “{self.session.title}”?"), confirmed)
-        elif cmd == "theme":
-            self.action_change_theme()
-        elif cmd in ("login", "key"):
-            self.ask_for_key()
-        elif cmd == "help":
-            self.action_help()
+    def cmd_quit(self, arg: str) -> None:
+        self.exit()
+
+    async def cmd_new(self, arg: str) -> None:
+        await self.action_new_chat()
+
+    def cmd_history(self, arg: str) -> None:
+        self.action_toggle_sidebar()
+
+    def cmd_effort(self, arg: str) -> None:
+        if arg and arg not in REASONING and arg != DEFAULT_REASONING:
+            self.notify(f"Unknown model effort. Choose: {', '.join(REASONING)}, default", severity="error")
         else:
-            self.notify(f"Unknown command /{cmd}. Type / to see commands.", severity="error")
+            self.action_pick_model_effort(arg or None)
+
+    def cmd_auto_effort(self, arg: str) -> None:
+        if arg in EFFORTS:
+            self.set_effort(arg)
+        elif arg:
+            self.notify(f"Unknown effort. Choose: {', '.join(EFFORTS)}", severity="error")
+        else:
+            self.action_pick_effort()
+
+    def cmd_model(self, arg: str) -> None:
+        if arg:
+            self.set_model(None if arg in ("off", "none", "preset") else arg)
+        else:
+            self.action_pick_model()
+
+    def cmd_search(self, arg: str) -> None:
+        s = self.settings
+        s.search = (arg == "on") if arg in ("on", "off") else not s.search
+        save_state(s, ("search",))
+        self.refresh_status()
+        self.notify(f"Web search {'on' if s.search else 'off'}")
+
+    def cmd_sources(self, arg: str) -> None:
+        last = self.session.last
+        if not last or not last.sources:
+            self.notify("No sources for the last answer.")
+            return
+        lines = [f"[{x.id}] {x.title or x.url}\n    {x.url}" for x in footer_sources(last.assistant, last.sources)]
+        self.notify("\n".join(lines), title="Sources", timeout=15)
+
+    def cmd_copy(self, arg: str) -> None:
+        last = self.session.last
+        if not last:
+            self.notify("Nothing to copy yet.")
+            return
+        self.copy_to_clipboard(normalize(last.assistant, last.sources))
+        self.notify("Copied the last answer.")
+
+    def cmd_rename(self, arg: str) -> None:
+        if not arg:
+            self.notify("Usage: /rename <title>")
+        elif not self.session.turns:
+            self.notify("Send a message first.")
+        else:
+            self.session.title = arg
+            self.store.save(self.session)
+            self.refresh_status()
+            self.refresh_sidebar()
+
+    def cmd_delete(self, arg: str) -> None:
+        if not self.session.turns:
+            self.notify("Nothing to delete.")
+            return
+
+        async def confirmed(yes: bool | None) -> None:
+            if yes:
+                if self.is_busy:  # the answer being written belongs to this conversation
+                    self._worker.cancel()
+                self.store.delete(self.session.id)
+                await self.show_session(Session())
+                self.notify("Conversation deleted.")
+
+        self.push_screen(ConfirmScreen(f"Delete “{self.session.title}”?"), confirmed)
+
+    def cmd_theme(self, arg: str) -> None:
+        self.action_change_theme()
+
+    def cmd_login(self, arg: str) -> None:
+        self.ask_for_key()
+
+    def cmd_help(self, arg: str) -> None:
+        self.action_help()
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
-        yield SystemCommand("New chat", "Start a new conversation", self.action_new_chat)
-        yield SystemCommand("History", "Toggle the conversation list", self.action_toggle_sidebar)
-        yield SystemCommand("Auto effort", "Change research effort preset", self.action_pick_effort)
-        yield SystemCommand("Model", "Pick a specific model", self.action_pick_model)
-        yield SystemCommand("Effort", "Reasoning effort for the selected model",
-                            self.action_pick_model_effort)
-        yield SystemCommand("Toggle web search", "Turn web search on or off",
-                            lambda: self.call_later(self.run_command, "/search"))
-        yield SystemCommand("Set API key", "Store a Perplexity API key", self.ask_for_key)
-        yield SystemCommand("Help", "Keys and commands", self.action_help)
+        for c in COMMANDS:
+            if c.palette:
+                title, help = c.palette
+                yield SystemCommand(title, help, partial(self.call_later, self.run_command, f"/{c.name}"))
         yield from super().get_system_commands(screen)
