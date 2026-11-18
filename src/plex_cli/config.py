@@ -201,7 +201,7 @@ def save_state(s: Settings, keys: Iterable[str] = STATE_KEYS, path: Path | None 
     flags (`plex -m ...`, `--no-search`) are not saved along with it.
     """
     path = path or STATE_FILE
-    try:  # the private data folder, see Store.save
-        atomic_write_json(path, {**load_state(path), **{k: getattr(s, k) for k in keys}}, dir_mode=0o700)
+    try:  # in the private data folder, see Store.save
+        atomic_write_json(path, {**load_state(path), **{k: getattr(s, k) for k in keys}}, private=True)
     except OSError:
         pass  # remembering the last-used settings is best effort

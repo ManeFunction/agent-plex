@@ -243,3 +243,10 @@ def test_resume_warns_when_the_newest_file_is_unreadable(tmp_path, monkeypatch, 
     os.utime(bad, (1, 1))  # an old broken file doesn't matter to -r
     assert cli.main(["-r", "hi"]) == 0
     assert "skipped" not in capsys.readouterr().err
+
+
+def test_state_file_is_private(tmp_path):
+    p = tmp_path / "plex" / "state.json"
+    save_state(Settings(), path=p)
+    assert stat.S_IMODE(p.stat().st_mode) == 0o600
+    assert stat.S_IMODE(p.parent.stat().st_mode) == 0o700

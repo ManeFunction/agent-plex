@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .client import Source
-from .files import atomic_write_json
+from .files import PRIVATE_DIR, atomic_write_json
 
 MAX_TURNS = 20  # user+assistant pairs kept in the replayed input
 TITLE_LEN = 60
@@ -177,8 +177,8 @@ class Store:
         p = self.path(s.id)
         # Conversations are private, like auth.json: 0600 files in 0700 folders. The data
         # folder above is created here too, since a chat may be saved before any key is.
-        self.dir.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        atomic_write_json(p, s.to_json(), mode=0o600, dir_mode=0o700)
+        self.dir.parent.mkdir(parents=True, exist_ok=True, mode=PRIVATE_DIR)
+        atomic_write_json(p, s.to_json(), private=True)
         return p
 
     def load(self, sid: str) -> Session:

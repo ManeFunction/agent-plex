@@ -43,7 +43,7 @@ def set_key(key: str, path: Path | None = None) -> Path:
         raise ValueError("empty API key")
     data = _read(path)
     data[PROVIDER] = {"type": "api", "key": key}
-    atomic_write_json(path, data, mode=0o600, dir_mode=0o700)
+    atomic_write_json(path, data, private=True)
     return path
 
 
@@ -54,7 +54,7 @@ def remove_key(path: Path | None = None) -> bool:
         return False
     del data[PROVIDER]
     if data:  # keep other providers untouched
-        atomic_write_json(path, data, mode=0o600, dir_mode=0o700)
+        atomic_write_json(path, data, private=True)
     else:
         path.unlink(missing_ok=True)
     return True
