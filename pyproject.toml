@@ -22,7 +22,7 @@ classifiers = [
 dependencies = [
     "perplexityai>=0.47",
     "rich>=13",
-    "textual>=8",
+    "textual>=8,<9",  # the TUI overrides private Textual hooks (see tui/screens.py)
 ]
 
 [project.optional-dependencies]
