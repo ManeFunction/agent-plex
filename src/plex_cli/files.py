@@ -12,7 +12,8 @@ def atomic_write_json(path: Path, data: Any, mode: int | None = None, dir_mode: 
     """Write `data` to a temp file next to `path`, then rename it over `path`.
 
     A crash mid-write leaves the old file intact. `mode` sets the file's permissions and
-    `dir_mode` those of a parent folder that has to be created (both default to the umask).
+    `dir_mode` those of the parent folder if it has to be created (both default to the umask;
+    folders further up are always created with the umask).
     """
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o777 if dir_mode is None else dir_mode)
     tmp = path.with_suffix(".tmp")

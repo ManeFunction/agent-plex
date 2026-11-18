@@ -193,7 +193,7 @@ def load_state(path: Path | None = None) -> dict:
 
 def _write_state(state: dict, path: Path) -> None:
     try:
-        atomic_write_json(path, state)
+        atomic_write_json(path, state, dir_mode=0o700)  # the private data folder, see Store.save
     except OSError:
         pass  # remembering the last-used settings is best effort
 

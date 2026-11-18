@@ -135,7 +135,10 @@ class Store:
         if not s.turns:
             return self.path(s.id)
         p = self.path(s.id)
-        atomic_write_json(p, s.to_json())
+        # Conversations are private, like auth.json: 0600 files in 0700 folders. The data
+        # folder above is created here too, since a chat may be saved before any key is.
+        self.dir.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        atomic_write_json(p, s.to_json(), mode=0o600, dir_mode=0o700)
         return p
 
     def load(self, sid: str) -> Session:

@@ -135,3 +135,13 @@ def test_cli_clear_nothing(tmp_path, capsys):
     from plex_cli.cli import cmd_clear
     assert cmd_clear(Store(tmp_path / "missing")) == 0
     assert "No conversations" in capsys.readouterr().out
+
+
+def test_conversations_are_private(tmp_path):
+    store = Store(tmp_path / "plex" / "sessions")
+    s = Session()
+    s.commit(Turn("q", "a"))
+    path = store.save(s)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(store.dir.stat().st_mode) == 0o700
+    assert stat.S_IMODE(store.dir.parent.stat().st_mode) == 0o700
