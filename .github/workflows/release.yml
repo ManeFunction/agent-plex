@@ -25,6 +25,9 @@ jobs:
       - name: Check the tag matches the project version
         run: python .github/scripts/check_version.py --file src/plex_cli/__init__.py --regex '__version__ = "([^"]+)"'
 
+      - name: Check CHANGELOG.md has a section for this version
+        run: python .github/scripts/release_notes.py --check
+
   build:
     needs: [test, check-version]
     runs-on: ubuntu-latest

@@ -15,11 +15,13 @@ so the CI checkout needs fetch-depth: 0).
 
 The tag comes from --tag or GITHUB_REF_NAME (a leading "v" is ignored when matching the CHANGELOG).
 Pure standard library, Python 3.9+. A version missing from CHANGELOG.md is a warning, not an error, and
-gives an empty body (check_version.py is the gate).
+gives an empty body. With --check, the script only checks that the section exists (exit code 1 if not) and
+prints nothing; run it that way before anything is published.
 
 Usage:
     release_notes.py [--tag v1.2.3] [--changelog CHANGELOG.md] [--repo owner/name]
                      [--previous-tag v1.2.2] [--no-link]
+    release_notes.py --check [--tag v1.2.3] [--changelog CHANGELOG.md]
 """
 import argparse
 import os
@@ -64,6 +66,8 @@ def main():
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", ""), help="owner/name for the link")
     parser.add_argument("--previous-tag", help="tag to compare against (default: the nearest earlier tag)")
     parser.add_argument("--no-link", action="store_true", help="leave out the Full Changelog link")
+    parser.add_argument("--check", action="store_true",
+                        help="only check that CHANGELOG.md has the version's section; exit 1 if not")
     args = parser.parse_args()
     if not args.tag:
         parser.error("no tag: pass --tag or set GITHUB_REF_NAME")
@@ -73,6 +77,13 @@ def main():
     if os.path.exists(args.changelog):
         with open(args.changelog, encoding="utf-8") as f:
             section, found = changelog_section(f.read(), version)
+    if args.check:
+        if not found:
+            print(f"error: no '## [{version}]' section in {args.changelog}; move the [Unreleased] entries "
+                  f"under a dated '## [{version}] - YYYY-MM-DD' heading", file=sys.stderr)
+            return 1
+        print(f"{args.changelog} has a section for {version}", file=sys.stderr)
+        return 0
     if not found:
         print(f"warning: no '## [{version}]' section in {args.changelog}", file=sys.stderr)
 
