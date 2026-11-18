@@ -383,19 +383,25 @@ def test_user_themes_add_override_and_report_problems(tmp_path):
 async def test_matrix_theme_runs_rain_only_while_selected(tmp_path):
     app = make_app(tmp_path)
     async with app.run_test(size=(100, 40)) as pilot:
-        assert not app.rain.active
+        assert not app.backdrop.active
         app.theme = "matrix"
         await pilot.pause(0.5)
-        assert app.rain.active
+        assert app.backdrop.active
         welcome = app.query_one(Welcome)
         lines = welcome.render_lines(welcome.region.reset_offset)
         text = "".join(line.text for line in lines)
         assert "Ask anything" in text  # text stays readable
         assert any(ch in text for ch in "ｱｲｳｴｵｶｷ0123456789")  # rain around it
 
+        assert app.backdrop.animating
+        app.app_focus = False  # the terminal window lost focus: the rain holds still
+        assert not app.backdrop.animating
+        app.app_focus = True
+        assert app.backdrop.animating
+
         app.theme = "terminal-coral"
         await pilot.pause()
-        assert not app.rain.active
+        assert not app.backdrop.active and not app.backdrop.animating
         assert not any(ch in "".join(l.text for l in welcome.render_lines(welcome.region.reset_offset))
                        for ch in "ｱｳｴｵｶｷ")
 

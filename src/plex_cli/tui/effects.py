@@ -1,8 +1,9 @@
 """Animated background effects that a theme can turn on (`effect = "rain"`).
 
-The rain is one screen-sized field. Widgets that form the app's background
-(`RainBackdrop`) draw their slice of it into their empty cells, so it falls
-around messages, the input and the sidebar without running behind any text.
+The rain is one screen-sized field; backdrop.py turns it on and animates it.
+Widgets that form the app's background (`RainBackdrop`) draw their slice of it
+into their empty cells, so it falls around messages, the input and the sidebar
+without running behind any text.
 """
 
 from __future__ import annotations
@@ -152,7 +153,8 @@ class RainBackdrop:
     TEXTLESS = False  # True for containers: their own cells are all blank, so skip the text scan
 
     def render_lines(self, crop: Region) -> list[Strip]:
-        rain: RainField | None = getattr(self.app, "rain", None)  # type: ignore[attr-defined]
+        backdrop = getattr(self.app, "backdrop", None)  # backdrop.Backdrop, on the plex app
+        rain: RainField | None = backdrop.rain if backdrop is not None else None
         if rain is None or not rain.active:
             return super().render_lines(crop)  # type: ignore[misc]
         region = self.region  # type: ignore[attr-defined]

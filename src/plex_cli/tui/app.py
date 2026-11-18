@@ -28,7 +28,8 @@ from ..session import Session, Store, ago
 from .screens import (ApiKeyScreen, ConfirmScreen, EffortScreen, HelpScreen,
                       ModelPalette, ReasoningScreen, ThemePalette, parse_reasoning)
 from .commands import COMMANDS, lookup
-from .effects import RAIN, BackdropScroll, BackdropVertical, RainField
+from .backdrop import Backdrop
+from .effects import BackdropScroll, BackdropVertical
 from .themes import load_themes
 from .widgets import AssistantMessage, CommandMenu, PromptInput, UserMessage, Welcome
 
@@ -86,8 +87,7 @@ class PlexApp(App):
         self._links: list[str] = []
         self._pending: str | None = None  # question waiting for an API key
         self._models: list[str] | None = None  # /v1/models, fetched on first /model
-        self.rain = RainField()  # drawn by the background widgets when the theme asks for it
-        self._rain_timer = None
+        self.backdrop = Backdrop(self, "#main, #chat, Welcome")  # the theme's animated background
 
     # --- layout --------------------------------------------------------------
 
@@ -106,9 +106,9 @@ class PlexApp(App):
                     yield Static(id="status-right")
 
     async def on_mount(self) -> None:
-        self._rain_timer = self.set_interval(1 / RainField.FPS, self._rain_tick, pause=True)
+        self.backdrop.start()
         self.setup_themes()
-        self.apply_effect()
+        self.backdrop.apply(self.current_theme)
         self.theme_changed_signal.subscribe(self, self._on_theme_changed)
         prompt = self.query_one(PromptInput)
         prompt.menu = self.query_one(CommandMenu)
@@ -135,43 +135,14 @@ class PlexApp(App):
             self.notify("\n".join(problems), title="Some themes were skipped",
                         severity="warning", timeout=15)
 
-    def apply_effect(self) -> None:
-        """Start or stop the theme's animated background."""
-        active = getattr(self.current_theme, "effect", None) == RAIN
-        if active == self.rain.active:
-            return
-        self.rain.active = active
-        if active:
-            self.rain.resize(*self.size)
-        self._sync_rain_timer()
-        self._refresh_backdrops()
-
-    def _sync_rain_timer(self) -> None:
-        # Animate only while the rain is on and the terminal window has focus.
-        if self.rain.active and self.app_focus:
-            self._rain_timer.resume()
-        else:
-            self._rain_timer.pause()
-
     def watch_app_focus(self, focused: bool) -> None:
-        if self._rain_timer is not None:
-            self._sync_rain_timer()
-
-    def _rain_tick(self) -> None:
-        self.rain.resize(*self.size)
-        self.rain.tick()
-        self._refresh_backdrops()
-
-    def _refresh_backdrops(self) -> None:
-        main = self.screen_stack[0]  # the chat screen, even while a dialog is open
-        for widget in main.query("#main, #chat, Welcome"):
-            widget.refresh()
+        self.backdrop.focus_changed()
 
     def _on_theme_changed(self, theme) -> None:
         # Text styled with theme colors ($accent etc.) keeps the old colors until redrawn.
         for widget in self.screen_stack[0].query("*"):
             widget.refresh()
-        self.apply_effect()
+        self.backdrop.apply(theme)
         if isinstance(self.screen, ThemePalette):
             return  # previewing; saved once the picker closes
         self.save_theme()
