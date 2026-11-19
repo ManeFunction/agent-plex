@@ -202,6 +202,25 @@ class Store:
             n += p.suffix == ".json"
         return n
 
+    def prune(self, keep_days: int, now: float | None = None) -> int:
+        """Delete conversations not updated in the last `keep_days` days (0 keeps them all);
+        returns how many were removed. Files that can't be read are left alone."""
+        if keep_days <= 0 or not self.dir.exists():
+            return 0
+        cutoff = (now or time.time()) - keep_days * 86400
+        n = 0
+        for p in self.dir.glob("*.json"):
+            try:
+                d = json.loads(p.read_text())
+                if not isinstance(d, dict):
+                    continue
+                if _header(d, p.stem, p.stat().st_mtime)[3] < cutoff:
+                    p.unlink(missing_ok=True)
+                    n += 1
+            except (OSError, ValueError, TypeError):
+                continue
+        return n
+
     def list(self) -> list[SessionInfo]:
         self.unreadable = []
         if not self.dir.exists():

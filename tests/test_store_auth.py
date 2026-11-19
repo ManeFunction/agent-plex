@@ -5,7 +5,7 @@ import pytest
 
 from plex_cli import auth
 from plex_cli.client import Source
-from plex_cli.config import Settings, load_state, save_state, settings_from
+from plex_cli.config import ConfigError, Settings, load_state, save_state, settings_from
 from plex_cli.session import Session, Store, Turn, ago, make_title
 
 
@@ -250,3 +250,24 @@ def test_state_file_is_private(tmp_path):
     save_state(Settings(), path=p)
     assert stat.S_IMODE(p.stat().st_mode) == 0o600
     assert stat.S_IMODE(p.parent.stat().st_mode) == 0o700
+
+
+def test_store_prunes_old_conversations(tmp_path):
+    store = Store(tmp_path)
+    now = 1_000_000_000.0
+    for sid, age_days in (("fresh", 10), ("old", 65)):
+        s = Session(id=sid, updated_at=now - age_days * 86400)
+        s.turns.append(Turn("q", "a"))
+        store.save(s)
+    (tmp_path / "bad.json").write_text("{nope")
+    assert store.prune(0, now=now) == 0  # 0 keeps everything
+    assert store.prune(64, now=now) == 1
+    assert sorted(p.stem for p in tmp_path.glob("*.json")) == ["bad", "fresh"]  # unreadable left alone
+
+
+def test_keep_days_setting():
+    assert Settings().keep_days == 64
+    assert settings_from({"keep_days": 0}).keep_days == 0
+    for bad in (-1, "30", True, 1.5):
+        with pytest.raises(ConfigError, match="keep_days"):
+            settings_from({"keep_days": bad})

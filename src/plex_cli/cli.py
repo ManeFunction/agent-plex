@@ -190,6 +190,7 @@ def main(argv: list[str] | None = None) -> int:
         settings.search = False
 
     store = Store(SESSIONS_DIR)
+    store.prune(settings.keep_days)
     session = Session()
     if args.resume or args.open:
         if args.resume:

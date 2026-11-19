@@ -37,6 +37,9 @@ REASONING_INFO = {
 
 DEFAULT_THEME = "terminal"
 
+# Saved conversations not updated for this many days are deleted at startup; 0 keeps them.
+DEFAULT_KEEP_DAYS = 64
+
 DEFAULT_INSTRUCTIONS = (
     "You are a helpful research assistant answering in a terminal chat. "
     "Be concise and use Markdown. When you use web sources, cite them inline "
@@ -76,6 +79,7 @@ class Settings:
     instructions: str = DEFAULT_INSTRUCTIONS
     max_steps: int = 5
     theme: str = DEFAULT_THEME
+    keep_days: int = DEFAULT_KEEP_DAYS
     # Last model seen serving each effort level: {level: {"model", "version", "at"}}.
     seen: dict[str, dict] = field(default_factory=dict)
 
@@ -168,6 +172,11 @@ def _apply(s: Settings, cfg: dict, source: str) -> None:
             raise ConfigError(f"Invalid max_steps {cfg['max_steps']!r} in {source}; use a whole number") from None
     if cfg.get("theme"):
         s.theme = str(cfg["theme"])
+    if "keep_days" in cfg:
+        k = cfg["keep_days"]
+        if isinstance(k, bool) or not isinstance(k, int) or k < 0:
+            raise ConfigError(f"Invalid keep_days {k!r} in {source}; use a whole number of days (0 keeps everything)")
+        s.keep_days = k
 
 
 def settings_from(file_cfg: dict, state: dict | None = None) -> Settings:

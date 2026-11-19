@@ -113,7 +113,7 @@ Type `/` to see suggestions, then press `tab` to complete.
 | Path | |
 |---|---|
 | `~/.local/share/plex/auth.json` | API key (0600) |
-| `~/.local/share/plex/sessions/*.json` | conversations, saved after every answer |
+| `~/.local/share/plex/sessions/*.json` | conversations, saved after every answer; ones not updated in 64 days (`keep_days`) are deleted when plex starts |
 | `~/.local/share/plex/state.json` | last used effort, model, reasoning effort, search and theme, plus the model last seen for each effort level |
 | `~/.config/plex/config.toml` | optional defaults (see below) |
 
@@ -125,6 +125,7 @@ effort = "fast"
 # search = true
 # theme = "terminal"
 # max_steps = 5            # research steps in model mode
+# keep_days = 64           # delete conversations not updated in this many days; 0 keeps them forever
 # instructions = "..."     # custom system prompt
 ```
 
