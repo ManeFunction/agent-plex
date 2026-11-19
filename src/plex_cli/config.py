@@ -119,6 +119,13 @@ class Settings:
         return True
 
     @property
+    def seen_model(self) -> str | None:
+        """In preset mode, the model last seen serving the current effort level."""
+        if not self.is_preset:
+            return None
+        return (self.seen.get(self.effort) or {}).get("model")
+
+    @property
     def label(self) -> str:
         if self.is_preset:
             mode = self.effort

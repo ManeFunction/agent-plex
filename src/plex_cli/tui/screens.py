@@ -121,7 +121,7 @@ class ReasoningScreen(Dialog):
                                for r, d in levels])
             yield Static(Content.from_markup(
                 "[dim]Not every model supports every level.\n"
-                "/auto-effort goes back to presets · enter to choose · esc to cancel[/]"), classes="hint")
+                "/preset goes back to presets · enter to choose · esc to cancel[/]"), classes="hint")
 
     def on_mount(self) -> None:
         opts = self.query_one(OptionList)
@@ -157,7 +157,7 @@ KEYS = [
     ("esc", "cancel the answer being written"),
     ("ctrl+n", "new conversation"),
     ("ctrl+s", "toggle history sidebar"),
-    ("ctrl+e", "change auto effort preset"),
+    ("ctrl+e", "change effort preset"),
     ("ctrl+p", "command palette"),
     ("ctrl+q", "quit"),
 ]

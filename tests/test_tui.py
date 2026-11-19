@@ -141,8 +141,8 @@ async def test_slash_menu_and_commands(tmp_path):
         await pilot.press("up")
         assert menu.selected_command == names[0]
         assert prompt.text == "/e"  # arrows move the menu, not the cursor/history
-        await pilot.press("backspace", "a", "u", "tab")
-        assert prompt.text == "/auto-effort "
+        await pilot.press("backspace", "p", "r", "tab")
+        assert prompt.text == "/preset "
         await pilot.press("h", "i", "g", "h", "enter")
         await pilot.pause()
         assert app.settings.effort == "high"
@@ -501,9 +501,15 @@ async def test_reasoning_effort_for_selected_model(tmp_path):
         await send(pilot, "/effort max")
         await send(pilot, "/model xai/grok-4.7")  # switching model drops the level
         assert app.settings.reasoning is None
-        await send(pilot, "/auto-effort ultra")  # a preset drops the model
+        await send(pilot, "/preset ultra")  # a preset drops the model
         assert app.settings.model is None and app.settings.effort == "ultra"
         assert "◆ ultra" in str(app.query_one("#status-left").render())
+
+        app.settings.note_seen("ultra@2026-11-11.0", "openai/gpt-6")  # known from history
+        await send(pilot, "/preset ultra")
+        assert "◆ ultra (openai/gpt-6)" in str(app.query_one("#status-left").render())
+        await send(pilot, "/preset low")  # nothing seen for this level yet
+        assert "(" not in str(app.query_one("#status-left").render()).split("search")[0]
 
 
 @pytest.mark.asyncio
@@ -526,7 +532,7 @@ async def test_model_effort_in_preset_mode_picks_a_model_first(tmp_path):
         assert (app.settings.model, app.settings.reasoning) == ("perplexity/sonar", "high")
 
         # Without a level: pick a model, then the effort picker opens.
-        await send(pilot, "/auto-effort low")
+        await send(pilot, "/preset low")
         await send(pilot, "/effort")
         await pick(pilot, "grok")
         assert app.settings.model == "xai/grok-4.7"
@@ -534,7 +540,7 @@ async def test_model_effort_in_preset_mode_picks_a_model_first(tmp_path):
         await pilot.press("escape")
 
         # Going back to presets or closing the list sets nothing.
-        await send(pilot, "/auto-effort low")
+        await send(pilot, "/preset low")
         await send(pilot, "/effort max")
         await pick(pilot, "preset")
         assert app.settings.model is None and app.settings.reasoning is None
@@ -559,7 +565,7 @@ async def test_welcome_line_follows_mode(tmp_path):
         await send(pilot, "/model perplexity/sonar")
         await send(pilot, "/effort high")
         assert "model perplexity/sonar:high" in welcome() and "effort" not in welcome().split("\n")[-1]
-        await send(pilot, "/auto-effort low")
+        await send(pilot, "/preset low")
         assert "effort low" in welcome()
 
 

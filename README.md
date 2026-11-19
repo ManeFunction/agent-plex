@@ -83,7 +83,7 @@ plex -m openai/gpt-6-luna --model-effort high "…"  # a specific model and its 
 | `esc` | cancel the answer being written |
 | `ctrl+n` | new chat |
 | `ctrl+s` | history sidebar |
-| `ctrl+e` | auto-effort preset picker |
+| `ctrl+e` | effort preset picker |
 | `ctrl+p` | command palette |
 | `ctrl+q` | quit |
 
@@ -95,7 +95,7 @@ Type `/` to see suggestions, then press `tab` to complete.
 |---|---|
 | `/new`, `/clear` | new conversation |
 | `/history` | browse history |
-| `/auto-effort [level]` | effort preset: `fast` · `low` · `medium` · `high` · `xhigh` · `ultra` (drops a selected model) |
+| `/preset [level]` | effort preset: `fast` · `low` · `medium` · `high` · `xhigh` · `ultra` (drops a selected model) |
 | `/effort [level]` | effort for the selected model: `minimal` · `low` · `medium` · `high` · `xhigh` · `max` · `default` (in preset mode, asks for a model first) |
 | `/model [id]` / `/model off` | pick a model from the list your key can use, or give an id (e.g. `perplexity/sonar`) / go back to presets |
 | `/search [on\|off]` | toggle web search |

@@ -33,7 +33,7 @@ def domain(url: str) -> str:
 class Welcome(RainBackdrop, Static):
     def __init__(self, settings: Settings) -> None:
         super().__init__(id="welcome")
-        self.settings = settings  # read on each render, so it follows /auto-effort and /model
+        self.settings = settings  # read on each render, so it follows /preset and /model
 
     def render(self) -> Content:
         hints = [

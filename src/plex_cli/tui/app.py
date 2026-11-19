@@ -68,7 +68,7 @@ class PlexApp(App):
     BINDINGS = [
         Binding("ctrl+n", "new_chat", "New chat", priority=True),
         Binding("ctrl+s", "toggle_sidebar", "History", priority=True),
-        Binding("ctrl+e", "pick_effort", "Auto effort", priority=True),
+        Binding("ctrl+e", "pick_effort", "Preset", priority=True),
         Binding("escape", "cancel", "Cancel", show=False),
         Binding("f1", "help", "Help", show=False),
     ]
@@ -162,6 +162,8 @@ class PlexApp(App):
         # Distinct glyphs: ◆ effort preset, ● manually selected model (as model:reasoning).
         if s.is_preset:
             mode = Content.from_markup("[$accent b]◆[/] [b]$e[/]", e=s.effort)
+            if s.seen_model:  # the model that last served this preset, from past answers
+                mode += Content.from_markup(" [dim]($m)[/]", m=s.seen_model)
         else:
             mode = Content.from_markup("[$accent b]●[/] [b]$m[/]", m=s.model)
             if s.reasoning:
@@ -474,7 +476,7 @@ class PlexApp(App):
         if not self._pick_model_first(lambda: self.set_reasoning(level)):
             self.set_reasoning(level)
 
-    def cmd_auto_effort(self, arg: str) -> None:
+    def cmd_preset(self, arg: str) -> None:
         if arg in EFFORTS:
             self.set_effort(arg)
         elif arg:
