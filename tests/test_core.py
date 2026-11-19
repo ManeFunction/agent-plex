@@ -381,7 +381,7 @@ def test_cli_model_effort_needs_a_model(monkeypatch, capsys):
 
     monkeypatch.setattr("plex_cli.cli.load_file_config", lambda: {})
     monkeypatch.setattr("plex_cli.cli.load_state", lambda: {})
-    assert main(["--model-effort", "high", "hi"]) == 2
+    assert main(["--effort", "high", "hi"]) == 2
     assert "needs a selected model (add -m <id>)" in capsys.readouterr().err
 
 

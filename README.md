@@ -69,8 +69,8 @@ plex --clear              # delete all saved conversations (asks y/n first)
 
 plex "what's new in Python 3.15?"     # one-shot: print the answer and exit
 git diff | plex "review this"         # piped input is appended to the question
-plex -e high "compare uv and pip"     # pick an effort preset
-plex -m openai/gpt-6-luna --model-effort high "…"  # a specific model and its effort
+plex -p high "compare uv and pip"     # pick an effort preset
+plex -m openai/gpt-6-luna -e high "…"  # a specific model and its effort
 ```
 
 ### Keys

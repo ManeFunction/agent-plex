@@ -137,9 +137,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         epilog="Other commands: `plex auth login|logout|status`.",
     )
     p.add_argument("question", nargs="*", help="ask once, print the answer and exit (piped stdin is appended)")
-    p.add_argument("-e", "--effort", choices=EFFORTS, help="research effort preset (drops a selected model)")
-    p.add_argument("--model-effort", choices=REASONING, metavar="LEVEL",
-                   help=f"reasoning effort for the selected model: {', '.join(REASONING)}")
+    p.add_argument("-p", "--preset", choices=EFFORTS, help="research effort preset (drops a selected model)")
+    p.add_argument("-e", "--effort", choices=(*REASONING, "default"), metavar="LEVEL",
+                   help=f"reasoning effort for the selected model: {', '.join(REASONING)}, default")
     p.add_argument("-m", "--model", help="specific model, e.g. perplexity/sonar")
     p.add_argument("-s", "--system", help="custom system instructions")
     p.add_argument("--no-search", action="store_true", help="disable web search")
@@ -171,18 +171,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     api_key = auth.resolve_api_key(file_cfg)
 
-    if args.effort and args.model:
-        r.error("-e picks a preset and -m a model; use --model-effort to set the model's effort")
+    if args.preset and args.model:
+        r.error("-p picks a preset and -m a model; use -e to set the model's effort")
         return 2
     if args.model:
         settings.use_model(args.model)
+    if args.preset:
+        settings.use_preset(args.preset)
     if args.effort:
-        settings.use_preset(args.effort)
-    if args.model_effort:
         try:
-            settings.set_reasoning(args.model_effort)
+            settings.set_reasoning(None if args.effort == "default" else args.effort)
         except ValueError as e:
-            r.error(f"--model-effort: {e} (add -m <id>)")
+            r.error(f"--effort: {e} (add -m <id>)")
             return 2
     if args.system:
         settings.instructions = args.system
