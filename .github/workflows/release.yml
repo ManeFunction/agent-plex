@@ -53,7 +53,7 @@ jobs:
       - name: Check the tag matches the package version
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          WHEEL_VERSION=$(/tmp/plex-venv/bin/pip show per-plex | sed -n 's/^Version: //p')
+          WHEEL_VERSION=$(/tmp/plex-venv/bin/pip show agent-plex | sed -n 's/^Version: //p')
           CLI_VERSION=$(/tmp/plex-venv/bin/plex --version | sed 's/.* v//')
           echo "tag=$TAG_VERSION wheel=$WHEEL_VERSION cli=$CLI_VERSION"
           test "$TAG_VERSION" = "$WHEEL_VERSION" && test "$TAG_VERSION" = "$CLI_VERSION"
@@ -115,5 +115,5 @@ jobs:
         with:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           tap: ManeFunction/homebrew-tap
-          formula: per-plex
+          formula: agent-plex
           no_fork: "true"

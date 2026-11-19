@@ -1,16 +1,16 @@
-# per-plex
+# agent-plex
 
 A fast, good-looking [Perplexity](https://www.perplexity.ai/) chat for your terminal: researched answers with sources, streamed live, with chat history.
 
-It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Perplexity subscription plan is **not** required. The package is called `per-plex`; the command it installs is `plex`.
+It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Perplexity subscription plan is **not** required. The package is called `agent-plex`; the command it installs is `plex`.
 
 > The API is billed per use with an API key. A Perplexity Pro subscription doesn't cover it. A typical `fast` answer costs about $0.002, and plex shows the cost under every answer.
 
 You can use it as a full-featured shell with a familiar UI and commands, similar to other popular agentic CLIs like Claude Code or OpenCode.
-![](https://raw.githubusercontent.com/wiki/ManeFunction/per-plex/shell-ui.png)
+![](https://raw.githubusercontent.com/wiki/ManeFunction/agent-plex/shell-ui.png)
 
 Or you can get quick answers right in the terminal, without interrupting your work or switching tools.
-![](https://raw.githubusercontent.com/wiki/ManeFunction/per-plex/in-place-answer.png)
+![](https://raw.githubusercontent.com/wiki/ManeFunction/agent-plex/in-place-answer.png)
 
 The main difference with plex is that it's built for quick use, spending minimal time and tokens.
 Big harnesses use more than 10K tokens on every first message just to "set up" the model.
@@ -33,7 +33,7 @@ Perplexity is mainly a search-and-summarize engine, and plex is your door to it 
 
 ## Installation
 
-**per-plex** is available from a variety of sources.
+**agent-plex** is available from a variety of sources.
 `pip` or `brew` is recommended, because they have a convenient way to manage updates automatically.
 It needs Python 3.11 or newer.
 
@@ -41,21 +41,21 @@ It needs Python 3.11 or newer.
     - You can check if you have Python installed by running `python --version` in the Terminal or cmd.
     - For Mac and Linux users, there is a high chance that you already have Python installed on your system.
     - For Windows users, you can download Python from the [official website](https://www.python.org/downloads/).
-    - After confirmation, install **per-plex** through the [PyPI](https://pypi.org/project/per-plex) package
-      manager, typing `pip install per-plex` in the Terminal. For Mac users, you may need to use `pip3`
-      instead of `pip`. The package is called `per-plex`; the command it installs is `plex`.
+    - After confirmation, install **agent-plex** through the [PyPI](https://pypi.org/project/agent-plex) package
+      manager, typing `pip install agent-plex` in the Terminal. For Mac users, you may need to use `pip3`
+      instead of `pip`. The package is called `agent-plex`; the command it installs is `plex`.
     - Verify the installation with `plex --version`.
     - You are perfect, you can use the app with `plex` from any folder in your system.
 2) **brew (Recommended for Mac and Linux users)**
     - Type `brew tap manefunction/tap` in your Terminal to add my custom tap (app source) to your brew sources,
       if you haven't already.
-    - Type `brew install per-plex` to install the application itself.
+    - Type `brew install agent-plex` to install the application itself.
     - Verify the installation with `plex --version`.
     - You are perfect, you can use the app with `plex` from any folder in your system.
 3) **Python package (manual installation, for advanced users)**
     - Clone the repository or download the source code from GitHub.
     - Go to the folder with the code in your Terminal.
-    - Run `pip install .` to install `per-plex` to your system.
+    - Run `pip install .` to install `agent-plex` to your system.
     - Run `plex --version` to verify the install.
 
 ## Usage
@@ -148,7 +148,7 @@ effort = "fast"
 
 `terminal` (the default), `terminal-coral`, `terminal-green` and `terminal-violet` keep your terminal's own background, text and palette and add a single accent color. `terminal` takes its accent from the terminal palette too, so it fits any color scheme, light or dark. `matrix` is `terminal-green` with dim digital rain falling behind the chat. The rain never runs through text and pauses while the terminal window is in the background. The others are `tokyo-night`, `catppuccin-mocha`, `dracula` and `gruvbox`.
 
-Each theme is one TOML file, named after the theme. The bundled ones live in [`src/plex_cli/themes/`](https://github.com/ManeFunction/per-plex/tree/main/src/plex_cli/themes). To add your own, put a file in `~/.config/plex/themes/` (`$XDG_CONFIG_HOME/plex/themes/` if that's set, on Linux and macOS alike). plex creates this folder the first time you open the chat UI (one-shot questions don't), with an empty `PUT_YOUR_THEMES_HERE` file in it. Your themes are loaded alongside the bundled ones and show up in `/theme` the next time plex starts. A file with the same name as a bundled theme replaces it. Files with mistakes are skipped, and plex tells you why at startup.
+Each theme is one TOML file, named after the theme. The bundled ones live in [`src/plex_cli/themes/`](https://github.com/ManeFunction/agent-plex/tree/main/src/plex_cli/themes). To add your own, put a file in `~/.config/plex/themes/` (`$XDG_CONFIG_HOME/plex/themes/` if that's set, on Linux and macOS alike). plex creates this folder the first time you open the chat UI (one-shot questions don't), with an empty `PUT_YOUR_THEMES_HERE` file in it. Your themes are loaded alongside the bundled ones and show up in `/theme` the next time plex starts. A file with the same name as a bundled theme replaces it. Files with mistakes are skipped, and plex tells you why at startup.
 
 A terminal-style theme needs just an accent:
 
@@ -188,8 +188,8 @@ This is an unofficial client and is not affiliated with Perplexity AI.
 
 This repo follows the [Conventional Commits](https://www.conventionalcommits.org/) specification.
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/ManeFunction/per-plex)](https://github.com/ManeFunction/per-plex/releases/latest)
-[![GitHub All Releases](https://img.shields.io/github/downloads/ManeFunction/per-plex/total)](https://github.com/ManeFunction/per-plex/releases)
-[![PyPI version](https://img.shields.io/pypi/v/per-plex)](https://pypi.org/project/per-plex/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/per-plex)](https://pypi.org/project/per-plex/)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/ManeFunction/agent-plex)](https://github.com/ManeFunction/agent-plex/releases/latest)
+[![GitHub All Releases](https://img.shields.io/github/downloads/ManeFunction/agent-plex/total)](https://github.com/ManeFunction/agent-plex/releases)
+[![PyPI version](https://img.shields.io/pypi/v/agent-plex)](https://pypi.org/project/agent-plex/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/agent-plex)](https://pypi.org/project/agent-plex/)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/ManeFunction?label=Sponsor&logo=GitHubSponsors&style=flat)](https://github.com/sponsors/ManeFunction)

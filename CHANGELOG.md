@@ -8,6 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ## [0.9.0] - 2026-11-19
-First public release of per-plex: a fast, good-looking Perplexity chat for your terminal, built on Perplexity's
-Agent API. Install it from PyPI as `per-plex` or with Homebrew from `manefunction/tap`; the command is `plex`.
+First public release of agent-plex: a fast, good-looking Perplexity chat for your terminal, built on Perplexity's
+Agent API. Install it from PyPI as `agent-plex` or with Homebrew from `manefunction/tap`; the command is `plex`.
 

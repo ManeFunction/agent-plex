@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "per-plex"
+name = "agent-plex"
 dynamic = ["version"]
 description = "Chat with Perplexity from your terminal (Agent API)."
 readme = "README.md"
@@ -29,10 +29,10 @@ dependencies = [
 dev = ["pytest>=8", "pytest-asyncio>=0.23"]
 
 [project.urls]
-Homepage = "https://github.com/ManeFunction/per-plex"
-Repository = "https://github.com/ManeFunction/per-plex"
-Issues = "https://github.com/ManeFunction/per-plex/issues"
-Changelog = "https://github.com/ManeFunction/per-plex/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/ManeFunction/agent-plex"
+Repository = "https://github.com/ManeFunction/agent-plex"
+Issues = "https://github.com/ManeFunction/agent-plex/issues"
+Changelog = "https://github.com/ManeFunction/agent-plex/blob/main/CHANGELOG.md"
 
 [project.scripts]
 plex = "plex_cli.cli:main"
