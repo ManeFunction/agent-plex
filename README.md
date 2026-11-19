@@ -6,6 +6,21 @@ It uses Perplexity's [Agent API](https://docs.perplexity.ai/) (`/v1/agent`). Per
 
 > The API is billed per use with an API key. A Perplexity Pro subscription doesn't cover it. A typical `fast` answer costs about $0.002, and plex shows the cost under every answer.
 
+You can use it as a full-featured shell with a familiar UI and commands, similar to other popular agentic CLIs like Claude Code or OpenCode.
+![](https://raw.githubusercontent.com/wiki/ManeFunction/per-plex/shell-ui.png)
+
+Or you can get quick answers right in the terminal, without interrupting your work or switching tools.
+![](https://raw.githubusercontent.com/wiki/ManeFunction/per-plex/in-place-answer.png)
+
+The main difference with plex is that it's built for quick use, spending minimal time and tokens.
+Big harnesses use more than 10K tokens on every first message just to "set up" the model.
+Perplexity is mainly a search-and-summarize engine, and plex is your door to it with nothing in between.
+
+> [!IMPORTANT]
+> Because of this design, Perplexity doesn't store your context on the server side,
+> and every new message in a chat resends the whole history, which increases the cost.
+> It's not meant for long conversations.
+
 ## Features
 
 - Chat UI with streamed answers, inline source citations and the cost of every answer.
@@ -67,9 +82,9 @@ plex -o "python"          # reopen a conversation by id or title text
 plex --history            # list saved conversations
 plex --clear              # delete all saved conversations (asks y/n first)
 
-plex "what's new in Python 3.15?"     # one-shot: print the answer and exit
-git diff | plex "review this"         # piped input is appended to the question
-plex -p high "compare uv and pip"     # pick an effort preset
+plex "what's new in Python 3.15?"      # one-shot: print the answer and exit
+git diff | plex "review this"          # piped input is appended to the question
+plex -p high "compare uv and pip"      # pick an effort preset
 plex -m openai/gpt-6-luna -e high "…"  # a specific model and its effort
 ```
 
@@ -103,7 +118,7 @@ Type `/` to see suggestions, then press `tab` to complete.
 | `/copy` | copy the last answer |
 | `/rename <title>` | rename this conversation |
 | `/delete` | delete this conversation |
-| `/theme` | change the theme (previews as you move through the list) |
+| `/theme` | change the theme |
 | `/login` | set the API key |
 | `/help` | keys and commands |
 | `/quit`, `/exit` | exit |
@@ -164,22 +179,10 @@ dark = true             # false for light themes
 border = "#88C0D0"
 ```
 
-## Development
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
-.venv/bin/pytest
-```
-
-A release is a tag: `vX.Y.Z` runs the tests, checks that the tag matches the version in `src/plex_cli/__init__.py`,
-builds the package, publishes it to PyPI, creates the GitHub release and bumps the formula in the Homebrew tap.
-
 ## Credits
 
 Built on the [Perplexity Python SDK](https://github.com/perplexityai/perplexity-py), [Textual](https://textual.textualize.io/) and [Rich](https://github.com/Textualize/rich).
 This is an unofficial client and is not affiliated with Perplexity AI.
-
 
 ## Repository info
 
