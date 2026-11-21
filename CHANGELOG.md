@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-11-21
 ### Added
 - Selecting text in the chat with the mouse copies it to the clipboard, with a toast saying how much was copied.
 
