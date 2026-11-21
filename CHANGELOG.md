@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added
+- Selecting text in the chat with the mouse copies it to the clipboard, with a toast saying how much was copied.
+
 ### Changed
 - Clicking the chat, the slash menu or any blank spot no longer takes focus away from the prompt, so you can keep typing.
 

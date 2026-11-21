@@ -87,6 +87,7 @@ class PlexApp(App):
         self._links: list[str] = []
         self._pending: str | None = None  # question waiting for an API key
         self._models: list[str] | None = None  # /v1/models, fetched on first /model
+        self._copied: str | None = None  # the chat selection last copied, so it toasts once
         self.backdrop = Backdrop(self, "#main, #chat, Welcome")  # the theme's animated background
 
     # --- layout --------------------------------------------------------------
@@ -141,6 +142,18 @@ class PlexApp(App):
         """Clicking a blank or non-focusable spot clears focus: give it back to the prompt."""
         if focused is None and self.screen is self.screen_stack[0]:
             self.query_one(PromptInput).focus()
+
+    def on_text_selected(self, event) -> None:
+        """Text selected with the mouse (in the chat; the prompt handles its own) is copied."""
+        text = self.screen.get_selected_text()
+        if not text:
+            self._copied = None  # cleared: the same text may be selected and copied again
+            return
+        if text == self._copied:
+            return  # e.g. a click on a scrollbar keeps the selection
+        self._copied = text
+        self.copy_to_clipboard(text)
+        self.notify(f"Copied {plural(len(text), 'character')}.")
 
     def watch_app_focus(self, focused: bool) -> None:
         self.backdrop.focus_changed()

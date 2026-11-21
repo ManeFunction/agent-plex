@@ -683,3 +683,25 @@ async def test_clicks_outside_the_prompt_keep_its_focus(tmp_path):
         await pilot.press(*"ok")
         assert prompt.text == "ok"
 
+
+@pytest.mark.asyncio
+async def test_selecting_chat_text_copies_it(tmp_path):
+    app = make_app(tmp_path)
+    copied = []
+    app.copy_to_clipboard = copied.append
+    async with app.run_test(size=(100, 40)) as pilot:
+        await send(pilot, "hello world")
+        await pilot.pause(0.3)
+        msg = app.query_one(UserMessage)
+        x, y = msg.content_region.offset - msg.region.offset  # the text's first cell
+        await pilot.mouse_down(msg, offset=(x, y))
+        await pilot.hover(msg, offset=(x + 4, y))  # drag over "hello"
+        await pilot.mouse_up(msg, offset=(x + 4, y))
+        await pilot.pause()
+        assert copied == ["hello"]
+        assert any("Copied 5 characters" in str(n.message) for n in app._notifications)
+        assert app.focused is app.query_one(PromptInput)
+
+        await pilot.click("#chat", offset=(1, 1))  # a click clears the selection, copies nothing
+        await pilot.pause()
+        assert copied == ["hello"]
