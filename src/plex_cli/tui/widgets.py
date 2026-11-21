@@ -158,8 +158,8 @@ class AssistantMessage(Vertical):
         self.query_one(".meta", Static).update(Content.from_markup("[$warning]◼ interrupted[/]"))
 
 
-class CommandMenu(OptionList):
-    """Slash-command suggestions shown above the prompt."""
+class CommandMenu(OptionList, can_focus=False):
+    """Slash-command suggestions shown above the prompt (clickable, but focus stays in the prompt)."""
 
     def filter(self, prefix: str) -> bool:
         prefix = prefix.lower()

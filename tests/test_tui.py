@@ -667,3 +667,19 @@ async def test_rename_and_delete_report_disk_errors(tmp_path, monkeypatch):
         messages = [str(n.message) for n in app._notifications]
         assert any("Could not rename: disk full" in m for m in messages)
         assert any("Could not delete: disk full" in m for m in messages)
+
+
+@pytest.mark.asyncio
+async def test_clicks_outside_the_prompt_keep_its_focus(tmp_path):
+    app = make_app(tmp_path)
+    async with app.run_test(size=(100, 40)) as pilot:
+        await send(pilot, "hi")
+        await pilot.pause(0.3)
+        prompt = app.query_one(PromptInput)
+        for target in ("#chat", UserMessage, "#statusbar"):
+            await pilot.click(target)
+            await pilot.pause()
+            assert app.focused is prompt, target
+        await pilot.press(*"ok")
+        assert prompt.text == "ok"
+

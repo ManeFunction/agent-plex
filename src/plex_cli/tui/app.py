@@ -97,7 +97,8 @@ class PlexApp(App):
                 yield Static(Content.from_markup("[b]History[/]  [dim]ctrl+s[/]"), id="sidebar-title")
                 yield OptionList(id="sessions")
             with BackdropVertical(id="main"):
-                yield BackdropScroll(id="chat")
+                # Neither takes focus on click, so typing always goes to the prompt.
+                yield BackdropScroll(id="chat", can_focus=False)
                 yield CommandMenu(id="menu")
                 with Vertical(id="prompt-box"):
                     yield PromptInput(id="prompt", placeholder="Ask anything…  (/ for commands)")
@@ -116,6 +117,7 @@ class PlexApp(App):
         self.query_one(CommandMenu).display = False
         self.query_one("#sidebar").display = False
         self.query_one("#chat").anchor()
+        self.watch(self.screen, "focused", self._keep_focus, init=False)
         await self.show_session(self.session)
         prompt.focus()
         if self.client is None:
@@ -134,6 +136,11 @@ class PlexApp(App):
         if problems:
             self.notify("\n".join(problems), title="Some themes were skipped",
                         severity="warning", timeout=15)
+
+    def _keep_focus(self, focused) -> None:
+        """Clicking a blank or non-focusable spot clears focus: give it back to the prompt."""
+        if focused is None and self.screen is self.screen_stack[0]:
+            self.query_one(PromptInput).focus()
 
     def watch_app_focus(self, focused: bool) -> None:
         self.backdrop.focus_changed()
