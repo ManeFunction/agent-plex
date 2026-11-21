@@ -148,7 +148,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("-o", "--open", metavar="ID|TEXT", help="reopen a conversation by id or title")
     p.add_argument("--history", action="store_true", help="list saved conversations")
     p.add_argument("--clear", action="store_true", help="delete all saved conversations (asks first)")
-    p.add_argument("-V", "--version", action="version", version=f"plex v{__version__}")
+    p.add_argument("-v", "--version", action="version", version=f"plex v{__version__}")
     return p.parse_args(argv)
 
 
